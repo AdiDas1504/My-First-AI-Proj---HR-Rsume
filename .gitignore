@@ -1,0 +1,20 @@
+# Python virtual environment
+.venv/
+
+# Python cache files
+__pycache__/
+*.pyc
+
+# Environment variables and secrets
+.env
+
+# Uploaded files - private user data
+data/resumes/*
+data/job_posts/*
+
+# Keep empty folders in Git
+!data/resumes/.gitkeep
+!data/job_posts/.gitkeep
+
+# VS Code settings
+.vscode/
