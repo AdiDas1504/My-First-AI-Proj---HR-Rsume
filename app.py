@@ -3,7 +3,7 @@ from src.job_reader import read_job_post
 from src.analyzer import analyze_match
 from src.display_utils import print_preview
 from src.report_generator import generate_fit_report, print_fit_report
-
+from src.resume_tailor import generate_tailoring_plan, print_tailoring_plan
 
 def main():
     print("Welcome to JobFit AI Resume Tailor")
