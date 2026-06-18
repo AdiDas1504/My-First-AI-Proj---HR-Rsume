@@ -3,6 +3,8 @@ from pathlib import Path
 from docx import Document
 from pypdf import PdfReader
 
+from src.text_cleaner import clean_extracted_text
+
 
 def read_pdf(file_path):
     """
@@ -17,7 +19,8 @@ def read_pdf(file_path):
         if page_text:
             text_parts.append(page_text)
 
-    return "\n".join(text_parts)
+    raw_text = "\n".join(text_parts)
+    return clean_extracted_text(raw_text)
 
 
 def read_docx(file_path):
@@ -31,12 +34,13 @@ def read_docx(file_path):
         if paragraph.text.strip():
             text_parts.append(paragraph.text)
 
-    return "\n".join(text_parts)
+    raw_text = "\n".join(text_parts)
+    return clean_extracted_text(raw_text)
 
 
 def read_resume(file_path):
     """
-    Read a resume file and return its text.
+    Read a resume file and return its cleaned text.
 
     Supported formats:
     - PDF
