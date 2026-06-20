@@ -18,3 +18,7 @@ data/job_posts/*
 
 # VS Code settings
 .vscode/
+
+# Generated output files
+output/*
+!output/.gitkeep

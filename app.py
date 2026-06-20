@@ -4,10 +4,12 @@ from src.analyzer import analyze_match
 from src.display_utils import print_preview
 from src.report_generator import generate_fit_report, print_fit_report
 from src.resume_tailor import generate_tailoring_plan, print_tailoring_plan
+from src.output_writer import save_text_report
+
 
 def main():
     print("Welcome to JobFit AI Resume Tailor")
-    print("Version 7: Candidate fit report")
+    print("Version 9: Export candidate fit report")
     print()
 
     resume_path = "data/resumes/sample_resume.pdf"
@@ -19,6 +21,14 @@ def main():
 
     analysis = analyze_match(resume_text, job_text)
     report = generate_fit_report(analysis)
+    tailoring_plan = generate_tailoring_plan(analysis)
+
+    output_file = save_text_report(
+        report=report,
+        tailoring_plan=tailoring_plan,
+        resume_text=resume_text,
+        job_text=job_text,
+    )
 
     print()
     print("Resume text extracted and cleaned successfully!")
@@ -30,6 +40,12 @@ def main():
     print()
 
     print_fit_report(report)
+
+    print()
+    print_tailoring_plan(tailoring_plan)
+
+    print()
+    print(f"Report saved successfully: {output_file}")
 
     print()
     print_preview("Resume preview", resume_text, max_chars=500)
