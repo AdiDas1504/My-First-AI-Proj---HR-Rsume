@@ -4,7 +4,7 @@ from src.analyzer import analyze_match
 from src.display_utils import print_preview
 from src.report_generator import generate_fit_report, print_fit_report
 from src.resume_tailor import generate_tailoring_plan, print_tailoring_plan
-from src.output_writer import save_text_report
+from src.output_writer import save_text_report, save_word_report
 
 
 def main():
@@ -29,6 +29,12 @@ def main():
         resume_text=resume_text,
         job_text=job_text,
     )
+    word_output_file = save_word_report(
+    report=report,
+    tailoring_plan=tailoring_plan,
+    resume_text=resume_text,
+    job_text=job_text,
+    )
 
     print()
     print("Resume text extracted and cleaned successfully!")
@@ -45,7 +51,8 @@ def main():
     print_tailoring_plan(tailoring_plan)
 
     print()
-    print(f"Report saved successfully: {output_file}")
+    print(f"Text report saved successfully: {output_file}")
+    print(f"Word report saved successfully: {word_output_file}")
 
     print()
     print_preview("Resume preview", resume_text, max_chars=500)

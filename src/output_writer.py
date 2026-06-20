@@ -1,6 +1,8 @@
 from datetime import datetime
 from pathlib import Path
 
+from docx import Document
+
 
 def format_list(title, items):
     """
@@ -108,5 +110,76 @@ def save_text_report(report, tailoring_plan, resume_text, job_text):
     )
 
     output_path.write_text(report_text, encoding="utf-8")
+
+    return str(output_path)
+
+
+def add_bullet_list(document, items):
+    """
+    Add a bullet list to a Word document.
+    """
+    if not items:
+        document.add_paragraph("No items found.")
+        return
+
+    for item in items:
+        document.add_paragraph(str(item), style="List Bullet")
+
+
+def save_word_report(report, tailoring_plan, resume_text, job_text):
+    """
+    Save the full analysis report as a Word document.
+    """
+    output_dir = Path("output")
+    output_dir.mkdir(exist_ok=True)
+
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    output_path = output_dir / f"fit_report_{timestamp}.docx"
+
+    document = Document()
+
+    document.add_heading("JobFit AI Resume Tailor Report", level=1)
+
+    document.add_heading("Candidate Fit Summary", level=2)
+    document.add_paragraph(f"Fit score: {report['fit_score']}%")
+    document.add_paragraph(f"Fit level: {report['fit_level']}")
+
+    document.add_heading("Recommendation", level=2)
+    document.add_paragraph(report["recommendation"])
+
+    document.add_heading("Matched Keywords", level=2)
+    add_bullet_list(document, report["matched_keywords"])
+
+    document.add_heading("Missing or Weak Keywords", level=2)
+    add_bullet_list(document, report["missing_keywords"])
+
+    document.add_heading("Resume Tailoring Plan", level=1)
+
+    document.add_heading("Application Priority", level=2)
+    document.add_paragraph(tailoring_plan["priority"])
+
+    document.add_heading("Professional Summary Suggestion", level=2)
+    document.add_paragraph(tailoring_plan["summary_suggestion"])
+
+    document.add_heading("Missing Keywords to Consider Only If True", level=2)
+    add_bullet_list(document, tailoring_plan["missing_keyword_suggestions"])
+
+    document.add_heading("Bullet Point Rewrite Guidelines", level=2)
+    add_bullet_list(document, tailoring_plan["bullet_guidelines"])
+
+    document.add_heading("Extracted Resume Text Preview", level=2)
+    document.add_paragraph(resume_text[:1500])
+
+    document.add_heading("Extracted Job Requirements Preview", level=2)
+    document.add_paragraph(job_text[:1500])
+
+    document.add_heading("Important Note", level=2)
+    document.add_paragraph(
+        "This report should not be used to invent false experience, skills, "
+        "education, achievements, or tools. Resume improvements should only "
+        "reflect the candidate's real background."
+    )
+
+    document.save(output_path)
 
     return str(output_path)
