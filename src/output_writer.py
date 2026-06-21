@@ -183,3 +183,61 @@ def save_word_report(report, tailoring_plan, resume_text, job_text):
     document.save(output_path)
 
     return str(output_path)
+
+
+def save_tailored_resume_text(tailored_resume_text):
+    """
+    Save the tailored resume draft as a TXT file.
+    """
+    output_dir = Path("output")
+    output_dir.mkdir(exist_ok=True)
+
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    output_path = output_dir / f"tailored_resume_{timestamp}.txt"
+
+    output_path.write_text(tailored_resume_text, encoding="utf-8")
+
+    return str(output_path)
+
+
+def save_tailored_resume_word(tailored_resume_text):
+    """
+    Save the tailored resume draft as a Word document.
+    """
+    output_dir = Path("output")
+    output_dir.mkdir(exist_ok=True)
+
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    output_path = output_dir / f"tailored_resume_{timestamp}.docx"
+
+    document = Document()
+
+    document.add_heading("Tailored Resume Draft", level=1)
+
+    sections = tailored_resume_text.split("\n\n")
+
+    for section in sections:
+        clean_section = section.strip()
+
+        if not clean_section:
+            continue
+
+        lines = clean_section.splitlines()
+
+        if len(lines) == 1 and (
+            lines[0].isupper()
+            or lines[0].endswith(":")
+            or lines[0].startswith("TAILORED")
+        ):
+            document.add_heading(lines[0], level=2)
+            continue
+
+        for line in lines:
+            if line.startswith("- "):
+                document.add_paragraph(line[2:], style="List Bullet")
+            else:
+                document.add_paragraph(line)
+
+    document.save(output_path)
+
+    return str(output_path)

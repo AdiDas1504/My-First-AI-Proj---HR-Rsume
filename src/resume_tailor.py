@@ -35,9 +35,6 @@ def generate_keywords_to_add_if_true(missing_keywords):
     """
     Suggest missing keywords that may be added only if true.
     """
-    if not missing_keywords:
-        return []
-
     suggestions = []
 
     for keyword in limit_keywords(missing_keywords, max_items=12):
@@ -93,6 +90,131 @@ def generate_tailoring_plan(analysis):
         "missing_keyword_suggestions": missing_keyword_suggestions,
         "bullet_guidelines": bullet_guidelines,
     }
+
+
+def generate_targeted_profile(matched_keywords, missing_keywords):
+    """
+    Generate a safe targeted profile draft.
+    This does not invent experience. It only suggests a direction.
+    """
+    matched = limit_keywords(matched_keywords, max_items=6)
+    missing = limit_keywords(missing_keywords, max_items=6)
+
+    lines = []
+
+    lines.append("TARGETED PROFESSIONAL PROFILE")
+    lines.append("-" * 60)
+
+    if matched:
+        lines.append(
+            "This resume should emphasize the candidate's existing experience related to: "
+            + ", ".join(matched)
+            + "."
+        )
+    else:
+        lines.append(
+            "No strong matched areas were detected yet. The candidate should verify whether the resume truly reflects relevant experience for this role."
+        )
+
+    if missing:
+        lines.append("")
+        lines.append(
+            "The job posting also appears to value the following areas. Add them only if they are true and supported by real experience: "
+            + ", ".join(missing)
+            + "."
+        )
+
+    lines.append("")
+    lines.append(
+        "Suggested summary draft:"
+    )
+
+    if matched:
+        lines.append(
+            "Professional with experience connected to "
+            + ", ".join(matched)
+            + ", with the ability to work across stakeholders, support business goals, and contribute to structured execution."
+        )
+    else:
+        lines.append(
+            "Professional profile should be rewritten manually after confirming the candidate's real relevant experience for this role."
+        )
+
+    lines.append("")
+    lines.append(
+        "Important: This section is a draft direction only. It must be reviewed and edited so it accurately reflects the candidate's real background."
+    )
+
+    return "\n".join(lines)
+
+
+def generate_tailored_resume_draft(resume_text, analysis, tailoring_plan):
+    """
+    Generate a safe tailored resume draft.
+
+    This is not a full AI rewrite yet.
+    It creates a structured draft that:
+    - adds a targeted profile direction
+    - lists areas to emphasize
+    - lists missing areas to add only if true
+    - includes the original extracted resume text
+    """
+    matched_keywords = analysis["matched_keywords"]
+    missing_keywords = analysis["missing_keywords"]
+
+    lines = []
+
+    lines.append("TAILORED RESUME DRAFT")
+    lines.append("=" * 70)
+    lines.append("")
+
+    lines.append("Important honesty rule:")
+    lines.append(
+        "This draft must not be used to invent false skills, experience, education, tools, or achievements."
+    )
+    lines.append(
+        "Only keep or add information that reflects the candidate's real background."
+    )
+    lines.append("")
+
+    lines.append(generate_targeted_profile(matched_keywords, missing_keywords))
+    lines.append("")
+
+    lines.append("AREAS TO EMPHASIZE")
+    lines.append("-" * 60)
+
+    if matched_keywords:
+        for keyword in limit_keywords(matched_keywords, max_items=12):
+            lines.append(f"- Emphasize existing experience related to: {keyword}")
+    else:
+        lines.append("- No matched areas were detected yet.")
+
+    lines.append("")
+
+    lines.append("AREAS TO ADD ONLY IF TRUE")
+    lines.append("-" * 60)
+
+    if missing_keywords:
+        for keyword in limit_keywords(missing_keywords, max_items=12):
+            lines.append(f"- Add or strengthen '{keyword}' only if it is true.")
+    else:
+        lines.append("- No missing keyword areas were detected.")
+
+    lines.append("")
+
+    lines.append("BULLET REWRITE GUIDELINES")
+    lines.append("-" * 60)
+
+    for guideline in tailoring_plan["bullet_guidelines"]:
+        lines.append(f"- {guideline}")
+
+    lines.append("")
+
+    lines.append("ORIGINAL EXTRACTED RESUME TEXT")
+    lines.append("=" * 70)
+    lines.append(resume_text)
+
+    return "\n".join(lines)
 
 
 def print_tailoring_plan(plan):
