@@ -38,6 +38,9 @@ Future work not implemented yet.
 - Added optional Claude client loading so the non-AI flow can still work if the Anthropic SDK is missing.
 - Added first AI output safety validator.
 - Added automatic safety review section to Claude-generated Word output.
+- Added AI safety test cases document.
+- Added Claude safety test runner with synthetic resume and job inputs.
+- Added tests for missing skills, fake metrics, prompt injection, missing certifications, and overstated leadership.
 ### Planned
 
 * Add AI-powered resume rewrite.
