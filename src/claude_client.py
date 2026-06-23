@@ -1,12 +1,22 @@
-import anthropic
-
 from src.ai_config import get_anthropic_api_key, get_claude_model
 
 
 def get_claude_client():
     """
     Create a Claude client using the Anthropic API key from .env.
+
+    Important:
+    The anthropic package is imported inside this function so the app can
+    still run in non-AI mode even if the package is not installed yet.
     """
+    try:
+        import anthropic
+    except ModuleNotFoundError as error:
+        raise RuntimeError(
+            "The Anthropic SDK is not installed. "
+            "Run: python -m pip install anthropic"
+        ) from error
+
     api_key = get_anthropic_api_key()
 
     return anthropic.Anthropic(api_key=api_key)
