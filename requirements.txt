@@ -3,3 +3,8 @@ python-docx
 requests
 beautifulsoup4
 python-bidi
+pillow
+pytesseract
+pymupdf
+python-dotenv
+openai
