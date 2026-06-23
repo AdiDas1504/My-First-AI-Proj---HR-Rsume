@@ -173,7 +173,7 @@ When AI integration is added, API keys must be stored in a `.env` file.
 Example:
 
 ```env
-OPENAI_API_KEY=your_api_key_here
+Claude_API_KEY=your_api_key_here
 ```
 
 Rules:

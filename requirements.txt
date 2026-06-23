@@ -6,5 +6,5 @@ python-bidi
 pillow
 pytesseract
 pymupdf
+anthropic
 python-dotenv
-openai
