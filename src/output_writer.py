@@ -241,3 +241,43 @@ def save_tailored_resume_word(tailored_resume_text):
     document.save(output_path)
 
     return str(output_path)
+def save_claude_tailored_resume_word(claude_tailored_resume_text):
+    """
+    Save the Claude tailored resume draft as a Word document.
+    """
+    output_dir = Path("output")
+    output_dir.mkdir(exist_ok=True)
+
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    output_path = output_dir / f"claude_tailored_resume_{timestamp}.docx"
+
+    document = Document()
+
+    document.add_heading("Claude Tailored Resume Draft", level=1)
+
+    document.add_paragraph(
+        "Important: This AI-generated resume draft must be reviewed before use. "
+        "Do not submit any content that does not accurately reflect the candidate's real experience."
+    )
+
+    lines = claude_tailored_resume_text.splitlines()
+
+    for line in lines:
+        clean_line = line.strip()
+
+        if not clean_line:
+            continue
+
+        if clean_line.startswith("#"):
+            heading_text = clean_line.replace("#", "").strip()
+            document.add_heading(heading_text, level=2)
+        elif clean_line.startswith("- "):
+            document.add_paragraph(clean_line[2:], style="List Bullet")
+        elif clean_line[:3].replace(".", "").isdigit():
+            document.add_paragraph(clean_line, style="List Number")
+        else:
+            document.add_paragraph(clean_line)
+
+    document.save(output_path)
+
+    return str(output_path)
