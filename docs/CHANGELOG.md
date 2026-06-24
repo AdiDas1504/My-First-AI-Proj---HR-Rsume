@@ -41,6 +41,7 @@ Future work not implemented yet.
 - Added AI safety test cases document.
 - Added Claude safety test runner with synthetic resume and job inputs.
 - Added tests for missing skills, fake metrics, prompt injection, missing certifications, and overstated leadership.
+- Added initial Streamlit user interface for resume upload, job input, analysis results, and Word report downloads.
 ### Planned
 
 * Add AI-powered resume rewrite.
