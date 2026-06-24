@@ -20,6 +20,7 @@ from src.output_writer import (
 )
 from src.ai_config import is_ai_configured
 from src.claude_resume_writer import generate_claude_tailored_resume
+from src.ai_output_validator import validate_ai_output
 
 
 def save_uploaded_file(uploaded_file, suffix):
@@ -73,6 +74,7 @@ def run_analysis(resume_path, job_source, use_claude):
     tailored_word_path = save_tailored_resume_word(tailored_resume_text)
 
     claude_word_path = None
+    claude_safety_review = None
 
     if use_claude:
         claude_text = generate_claude_tailored_resume(
@@ -82,6 +84,7 @@ def run_analysis(resume_path, job_source, use_claude):
             tailoring_plan=tailoring_plan,
         )
 
+        claude_safety_review = validate_ai_output(claude_text)
         claude_word_path = save_claude_tailored_resume_word(claude_text)
 
     return {
@@ -95,6 +98,7 @@ def run_analysis(resume_path, job_source, use_claude):
         "tailored_txt_path": tailored_txt_path,
         "tailored_word_path": tailored_word_path,
         "claude_word_path": claude_word_path,
+        "claude_safety_review": claude_safety_review,
     }
 
 
@@ -258,6 +262,14 @@ if analyze_button:
         )
 
         if results["claude_word_path"]:
+            st.subheader("Claude AI Safety Review")
+
+            safety = results["claude_safety_review"]
+            if safety["has_warnings"]:
+                st.warning(safety["review_message"])
+            else:
+                st.info(safety["review_message"])
+
             st.download_button(
                 label="Download Claude Tailored Resume Word",
                 data=read_file_bytes(results["claude_word_path"]),
