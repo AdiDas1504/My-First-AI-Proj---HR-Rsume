@@ -39,6 +39,16 @@ def read_file_bytes(file_path):
     return Path(file_path).read_bytes()
 
 
+def delete_temp_file(file_path):
+    """
+    Silently delete a temporary uploaded file. Never raises.
+    """
+    try:
+        Path(file_path).unlink(missing_ok=True)
+    except Exception:
+        pass
+
+
 def run_analysis(resume_path, job_source, use_claude):
     """
     Run the existing pipeline and return generated results.
@@ -184,15 +194,19 @@ if analyze_button:
         st.error("Please upload a job posting file.")
         st.stop()
 
+    temp_files_to_clean = []
+
     try:
         resume_suffix = Path(resume_file.name).suffix
         resume_path = save_uploaded_file(resume_file, resume_suffix)
+        temp_files_to_clean.append(resume_path)
 
         if job_input_type == "URL":
             job_source = job_url.strip()
         else:
             job_suffix = Path(job_file.name).suffix
             job_source = save_uploaded_file(job_file, job_suffix)
+            temp_files_to_clean.append(job_source)
 
         with st.spinner("Analyzing resume and job posting..."):
             results = run_analysis(
@@ -301,3 +315,7 @@ if analyze_button:
     except Exception as error:
         st.error("Something went wrong while running the analysis.")
         st.exception(error)
+
+    finally:
+        for temp_path in temp_files_to_clean:
+            delete_temp_file(temp_path)
