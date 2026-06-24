@@ -229,6 +229,13 @@ if analyze_button:
         else:
             st.write("No missing keywords found.")
 
+        st.subheader("Resume Improvement Tips")
+        if report.get("improvement_tips"):
+            for tip in report["improvement_tips"]:
+                st.markdown(f"- {tip}")
+        else:
+            st.write("No improvement tips were generated.")
+
         st.subheader("Tailoring Plan")
         st.write(tailoring_plan["summary_suggestion"])
 
