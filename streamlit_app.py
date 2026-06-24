@@ -203,6 +203,20 @@ if analyze_button:
 
         st.success("Analysis completed successfully.")
 
+        if len(results["resume_text"]) < 300:
+            st.warning(
+                "The extracted resume text is very short and the analysis may be inaccurate. "
+                "To improve extraction quality: upload a clearer PDF, use a DOCX file instead, "
+                "or make sure the resume file is not scanned or image-based."
+            )
+
+        if len(results["job_text"]) < 300:
+            st.warning(
+                "The extracted job posting text is very short and the analysis may be inaccurate. "
+                "To improve extraction quality: paste a different job URL, upload a clearer screenshot, "
+                "or upload the job posting as a PDF or DOCX file."
+            )
+
         report = results["report"]
         analysis = results["analysis"]
         tailoring_plan = results["tailoring_plan"]
