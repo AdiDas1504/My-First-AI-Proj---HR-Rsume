@@ -9,8 +9,8 @@ from pytesseract import TesseractNotFoundError
 from src.text_cleaner import clean_extracted_text
 from src.resume_reader import read_resume
 
-SUPPORTED_IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp", ".pdf", ".docx"}
-
+SUPPORTED_IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp"}
+SUPPORTED_DOCUMENT_EXTENSIONS = {".pdf", ".docx"}
 
 RELEVANT_SECTION_KEYWORDS = {
     # English
@@ -506,6 +506,15 @@ def read_job_from_image(image_path):
     return relevant_job_text
 
 
+def read_job_from_document(file_path):
+    """
+    Read a job posting from a PDF or DOCX document.
+    """
+    document_text = read_resume(file_path)
+    lines = document_text.splitlines()
+    return extract_relevant_job_text(lines)
+
+
 def read_job_post(job_source):
     """
     Read job posting from URL, image, PDF, or DOCX.
@@ -529,10 +538,3 @@ def read_job_post(job_source):
     raise ValueError(
         "Unsupported job source. Please provide a URL, image, PDF, or DOCX file."
     )
-def read_job_from_document(file_path):
-    """
-    Read a job posting from a PDF or DOCX document.
-    """
-    document_text = read_resume(file_path)
-
-    return extract_relevant_job_text(document_text)
