@@ -4,7 +4,7 @@ from tempfile import NamedTemporaryFile
 import streamlit as st
 
 from src.resume_reader import read_resume
-from src.job_reader import read_job_post
+from src.job_reader import read_job_post, read_job_post_details
 from src.analyzer import analyze_match
 from src.report_generator import generate_fit_report
 from src.resume_tailor import (
@@ -54,7 +54,8 @@ def run_analysis(resume_path, job_source, use_claude):
     Run the existing pipeline and return generated results.
     """
     resume_text = read_resume(resume_path)
-    job_text = read_job_post(job_source)
+    job_details = read_job_post_details(job_source)
+    job_text = job_details["canonical_requirements"]
 
     analysis = analyze_match(resume_text, job_text)
     report = generate_fit_report(analysis)
@@ -100,6 +101,7 @@ def run_analysis(resume_path, job_source, use_claude):
     return {
         "resume_text": resume_text,
         "job_text": job_text,
+        "job_details": job_details,
         "analysis": analysis,
         "report": report,
         "tailoring_plan": tailoring_plan,
@@ -270,8 +272,31 @@ if analyze_button:
         with st.expander("Resume Text Preview"):
             st.text(results["resume_text"][:2000])
 
-        with st.expander("Job Requirements Preview"):
-            st.text(results["job_text"][:2000])
+        # ── Extracted Job Requirements Used for Analysis ──────────────────────
+        st.subheader("Extracted Job Requirements Used for Analysis")
+
+        jd = results["job_details"]
+
+        col_a, col_b, col_c = st.columns(3)
+        col_a.metric("Source", jd["source_type"].capitalize())
+        col_b.metric("Raw Text", f"{jd['raw_text_length']:,} chars")
+        col_c.metric("Requirements", f"{jd['canonical_requirements_length']:,} chars")
+
+        if jd.get("ocr_language"):
+            st.caption(f"OCR language used: {jd['ocr_language']}")
+
+        for warning in jd.get("warnings", []):
+            st.warning(warning)
+
+        if jd["canonical_requirements_length"] < 300:
+            st.warning(
+                "Very few requirement lines were extracted. "
+                "The fit score may not be reliable. "
+                "Try a clearer screenshot, a different URL, or upload the job as PDF or DOCX."
+            )
+
+        st.text(jd["canonical_requirements"][:2000])
+        # ─────────────────────────────────────────────────────────────────────
 
         st.subheader("Download Outputs")
 
