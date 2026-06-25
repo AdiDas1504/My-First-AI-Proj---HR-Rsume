@@ -219,63 +219,33 @@ if analyze_button:
 
         st.success("Analysis completed successfully.")
 
-        if len(results["resume_text"]) < 300:
-            st.warning(
-                "The extracted resume text is very short and the analysis may be inaccurate. "
-                "To improve extraction quality: upload a clearer PDF, use a DOCX file instead, "
-                "or make sure the resume file is not scanned or image-based."
-            )
-
-        if len(results["job_text"]) < 300:
-            st.warning(
-                "The extracted job posting text is very short and the analysis may be inaccurate. "
-                "To improve extraction quality: paste a different job URL, upload a clearer screenshot, "
-                "or upload the job posting as a PDF or DOCX file."
-            )
-
         report = results["report"]
         analysis = results["analysis"]
         tailoring_plan = results["tailoring_plan"]
+        jd = results["job_details"]
 
-        st.subheader("Fit Summary")
+        # Section counter increments so numbering is always continuous
+        # regardless of whether Claude is enabled or disabled.
+        _sec = [0]
+
+        def _next_header(title):
+            _sec[0] += 1
+            st.header(f"{_sec[0]}. {title}")
+
+        # ── Fit Summary ───────────────────────────────────────────────────────
+        _next_header("Fit Summary")
 
         col1, col2, col3 = st.columns(3)
         col1.metric("Fit Score", f"{report['fit_score']}%")
         col2.metric("Fit Level", report["fit_level"])
         col3.metric("Matched Items", len(report["matched_keywords"]))
 
-        st.subheader("Recommendation")
         st.write(report["recommendation"])
 
-        st.subheader("Matched Keywords / Concepts")
-        if report["matched_keywords"]:
-            st.write(report["matched_keywords"])
-        else:
-            st.write("No matched keywords found.")
-
-        st.subheader("Missing or Weak Keywords / Concepts")
-        if report["missing_keywords"]:
-            st.write(report["missing_keywords"])
-        else:
-            st.write("No missing keywords found.")
-
-        st.subheader("Resume Improvement Tips")
-        if report.get("improvement_tips"):
-            for tip in report["improvement_tips"]:
-                st.markdown(f"- {tip}")
-        else:
-            st.write("No improvement tips were generated.")
-
-        st.subheader("Tailoring Plan")
-        st.write(tailoring_plan["summary_suggestion"])
-
-        with st.expander("Resume Text Preview"):
-            st.text(results["resume_text"][:2000])
+        st.divider()
 
         # ── Extracted Job Requirements Used for Analysis ──────────────────────
-        st.subheader("Extracted Job Requirements Used for Analysis")
-
-        jd = results["job_details"]
+        _next_header("Extracted Job Requirements Used for Analysis")
 
         col_a, col_b, col_c = st.columns(3)
         col_a.metric("Source", jd["source_type"].capitalize())
@@ -285,44 +255,73 @@ if analyze_button:
         if jd.get("ocr_language"):
             st.caption(f"OCR language used: {jd['ocr_language']}")
 
-        for warning in jd.get("warnings", []):
-            st.warning(warning)
-
-        if jd["canonical_requirements_length"] < 300:
+        if len(results["resume_text"]) < 300:
             st.warning(
-                "Very few requirement lines were extracted. "
+                "Extracted resume text is very short. "
+                "Try a clearer PDF or a DOCX file."
+            )
+
+        if len(results["job_text"]) < 300 or jd["canonical_requirements_length"] < 300:
+            st.warning(
+                "Very few job requirement lines were extracted. "
                 "The fit score may not be reliable. "
                 "Try a clearer screenshot, a different URL, or upload the job as PDF or DOCX."
             )
 
-        st.text(jd["canonical_requirements"][:2000])
-        # ─────────────────────────────────────────────────────────────────────
+        for warning in jd.get("warnings", []):
+            st.warning(warning)
 
-        st.subheader("Download Outputs")
+        with st.expander("Requirements Text", expanded=True):
+            st.text(jd["canonical_requirements"][:2000])
 
-        st.download_button(
-            label="Download Fit Report TXT",
-            data=read_file_bytes(results["text_report_path"]),
-            file_name=Path(results["text_report_path"]).name,
-            mime="text/plain",
-        )
+        with st.expander("Resume Text"):
+            st.text(results["resume_text"][:2000])
 
-        st.download_button(
-            label="Download Fit Report Word",
-            data=read_file_bytes(results["word_report_path"]),
-            file_name=Path(results["word_report_path"]).name,
-            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        )
+        st.divider()
 
-        st.download_button(
-            label="Download Tailored Resume Word",
-            data=read_file_bytes(results["tailored_word_path"]),
-            file_name=Path(results["tailored_word_path"]).name,
-            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        )
+        # ── Matched Keywords / Concepts ───────────────────────────────────────
+        _next_header("Matched Keywords / Concepts")
 
+        if report["matched_keywords"]:
+            matched_md = "  \n".join(f"- {kw}" for kw in report["matched_keywords"])
+            st.markdown(matched_md)
+        else:
+            st.info("No matched concepts found yet.")
+
+        st.divider()
+
+        # ── Missing or Weak Keywords / Concepts ──────────────────────────────
+        _next_header("Missing or Weak Keywords / Concepts")
+
+        if report["missing_keywords"]:
+            missing_md = "  \n".join(f"- {kw}" for kw in report["missing_keywords"])
+            st.markdown(missing_md)
+        else:
+            st.info("No major missing concepts detected.")
+
+        st.divider()
+
+        # ── Resume Improvement Tips ───────────────────────────────────────────
+        _next_header("Resume Improvement Tips")
+
+        if report.get("improvement_tips"):
+            for tip in report["improvement_tips"]:
+                st.markdown(f"- {tip}")
+        else:
+            st.write("No improvement tips were generated.")
+
+        st.divider()
+
+        # ── Tailoring Plan ────────────────────────────────────────────────────
+        _next_header("Tailoring Plan")
+
+        st.write(tailoring_plan["summary_suggestion"])
+
+        st.divider()
+
+        # ── Claude AI Rewrite (only when Claude was used) ─────────────────────
         if results["claude_word_path"]:
-            st.subheader("Claude AI Safety Review")
+            _next_header("Claude AI Rewrite")
 
             safety = results["claude_safety_review"]
             if safety["has_warnings"]:
@@ -335,6 +334,40 @@ if analyze_button:
                 data=read_file_bytes(results["claude_word_path"]),
                 file_name=Path(results["claude_word_path"]).name,
                 mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            )
+
+            st.divider()
+
+        # ── Download Outputs ──────────────────────────────────────────────────
+        _next_header("Download Outputs")
+
+        dl_col1, dl_col2, dl_col3 = st.columns(3)
+
+        with dl_col1:
+            st.download_button(
+                label="Fit Report TXT",
+                data=read_file_bytes(results["text_report_path"]),
+                file_name=Path(results["text_report_path"]).name,
+                mime="text/plain",
+                use_container_width=True,
+            )
+
+        with dl_col2:
+            st.download_button(
+                label="Fit Report Word",
+                data=read_file_bytes(results["word_report_path"]),
+                file_name=Path(results["word_report_path"]).name,
+                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                use_container_width=True,
+            )
+
+        with dl_col3:
+            st.download_button(
+                label="Tailored Resume Word",
+                data=read_file_bytes(results["tailored_word_path"]),
+                file_name=Path(results["tailored_word_path"]).name,
+                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                use_container_width=True,
             )
 
     except Exception as error:
