@@ -84,6 +84,61 @@ def run_analysis(resume_path, job_source, use_claude):
     }
 
 
+def _show_error(err: Exception) -> None:
+    """Classify an exception and show a user-friendly Streamlit error message."""
+    err_lower    = str(err).lower()
+    err_typename = type(err).__name__
+
+    if (
+        "tesseract" in err_lower
+        or "tessdata" in err_lower
+        or "pytesseract" in err_lower
+        or "Tesseract" in err_typename
+    ):
+        st.error(
+            "We could not read text from this image. "
+            "Please upload a clearer screenshot or use the job URL/PDF."
+        )
+        return
+
+    if (
+        any(k in err_lower for k in (
+            "connection", "timeout", "ssl", "http error",
+            "failed to fetch", "could not fetch", "network",
+            "name or service not known", "no route to host",
+        ))
+        or any(k in err_typename for k in (
+            "ConnectionError", "Timeout", "HTTPError", "URLError",
+            "RequestException",
+        ))
+    ):
+        st.error(
+            "We could not read this job URL. "
+            "Please check the link or upload the job post as a PDF, DOCX, or screenshot."
+        )
+        return
+
+    if (
+        any(k in err_lower for k in (
+            "cannot read", "could not read", "invalid pdf", "corrupt",
+            "permission denied", "no such file", "failed to decode",
+            "unable to read",
+        ))
+        or any(k in err_typename for k in (
+            "IOError", "OSError", "PermissionError", "FileNotFoundError",
+        ))
+    ):
+        st.error(
+            "We could not read the uploaded file. "
+            "Please try a clearer file or upload a PDF/DOCX."
+        )
+        return
+
+    st.error("Something went wrong while analyzing the resume. Please try again.")
+    with st.expander("Technical details"):
+        st.exception(err)
+
+
 # ─── page config ──────────────────────────────────────────────────────────────
 
 st.set_page_config(
@@ -466,10 +521,10 @@ if not _on_results:
         job_url_clean = (job_url or "").strip()
 
         if resume_file is None:
-            st.error("Please upload a resume file (PDF or DOCX).")
+            st.error("Please upload a resume file before running the analysis.")
             st.stop()
         if not job_url_clean and job_file is None:
-            st.error("Please enter a job URL or upload a job file / screenshot.")
+            st.error("Please provide a job URL or upload a job file/screenshot.")
             st.stop()
 
         temp_files = []
@@ -493,13 +548,18 @@ if not _on_results:
                     use_claude=False,
                 )
 
+            if results.get("job_details", {}).get("canonical_requirements_length", 9999) < 100:
+                st.warning(
+                    "Very little job requirement text was extracted. Results may be inaccurate. "
+                    "Try a clearer screenshot, another URL, or upload the job post as PDF/DOCX."
+                )
+
             st.session_state.analysis_results = results
             st.session_state.job_label        = label
             st.rerun()
 
         except Exception as err:
-            st.error("Something went wrong during analysis.")
-            st.exception(err)
+            _show_error(err)
         finally:
             for p in temp_files:
                 delete_temp_file(p)
