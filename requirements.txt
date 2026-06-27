@@ -2,6 +2,7 @@ pypdf
 python-docx
 requests
 beautifulsoup4
+lxml
 python-bidi
 pillow
 pytesseract
@@ -9,3 +10,4 @@ pymupdf
 anthropic
 python-dotenv
 streamlit
+pytest
