@@ -81,6 +81,11 @@ def save_analysis_run(
     fit_score: int | None = None,
     fit_level: str = "",
     job_source_type: str = "",
+    resume_filename: str = "",
+    raw_job_chars: int = 0,
+    requirements_chars: int = 0,
+    text_report_path: str = "",
+    word_report_path: str = "",
 ) -> dict[str, Any]:
     """
     Persist a high-level analysis run record.
@@ -94,10 +99,15 @@ def save_analysis_run(
 
     try:
         payload = {
-            "job_label":       job_label[:500],
-            "fit_score":       fit_score,
-            "fit_level":       fit_level[:100],
-            "job_source_type": job_source_type[:50],
+            "job_label":          job_label[:500],
+            "fit_score":          fit_score,
+            "fit_level":          fit_level[:100],
+            "job_source_type":    job_source_type[:50],
+            "resume_filename":    resume_filename[:200],
+            "raw_job_chars":      raw_job_chars,
+            "requirements_chars": requirements_chars,
+            "text_report_path":   text_report_path[:500],
+            "word_report_path":   word_report_path[:500],
         }
         response = client.table("analysis_runs").insert(payload).execute()
         rows = response.data or []
@@ -112,6 +122,9 @@ def save_analysis_result(
     matched_keywords: list[str] | None = None,
     missing_keywords: list[str] | None = None,
     improvement_tips: list[str] | None = None,
+    extracted_requirements: str = "",
+    tailoring_plan_summary: str = "",
+    safety_notes: str = "",
 ) -> dict[str, Any]:
     """
     Persist keyword match results linked to a run_id from save_analysis_run.
@@ -124,10 +137,13 @@ def save_analysis_result(
 
     try:
         payload = {
-            "run_id":            run_id,
-            "matched_keywords":  matched_keywords or [],
-            "missing_keywords":  missing_keywords or [],
-            "improvement_tips":  improvement_tips or [],
+            "run_id":                  run_id,
+            "matched_keywords":        matched_keywords or [],
+            "missing_keywords":        missing_keywords or [],
+            "improvement_tips":        improvement_tips or [],
+            "extracted_requirements":  extracted_requirements[:2000],
+            "tailoring_plan_summary":  tailoring_plan_summary[:1000],
+            "safety_notes":            safety_notes[:500],
         }
         response = client.table("analysis_results").insert(payload).execute()
         rows = response.data or []

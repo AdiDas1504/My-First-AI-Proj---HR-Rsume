@@ -120,6 +120,9 @@ _FAKE_PATHS = {
 
 # ── 3. Helper: patch every run_analysis dependency ───────────────────────────
 
+_DISABLED_DB = {"status": "disabled", "id": None}
+
+
 def _patch_all(monkeypatch):
     """Apply all required monkeypatches to streamlit_app's namespace."""
     monkeypatch.setattr(streamlit_app, "read_resume",
@@ -142,6 +145,15 @@ def _patch_all(monkeypatch):
                         lambda text: _FAKE_PATHS["tailored_txt"])
     monkeypatch.setattr(streamlit_app, "save_tailored_resume_word",
                         lambda text: _FAKE_PATHS["tailored_word"])
+    # database functions — disabled by default in tests (no Supabase credentials)
+    monkeypatch.setattr(streamlit_app, "save_analysis_run",
+                        lambda **kw: _DISABLED_DB)
+    monkeypatch.setattr(streamlit_app, "save_analysis_result",
+                        lambda **kw: _DISABLED_DB)
+    monkeypatch.setattr(streamlit_app, "save_usage_event",
+                        lambda **kw: _DISABLED_DB)
+    monkeypatch.setattr(streamlit_app, "save_app_error",
+                        lambda **kw: _DISABLED_DB)
 
 
 # ── 4. Test classes ───────────────────────────────────────────────────────────
@@ -286,3 +298,83 @@ class TestRunAnalysisClaudeGuard:
         _patch_all(monkeypatch)
         result = run_analysis("/fake/resume.pdf", "https://example.com/job", use_claude=False)
         assert result["claude_safety_review"] is None
+
+
+class TestRunAnalysisDatabasePersistence:
+    """Database save functions are called on success and do not crash if disabled."""
+
+    def test_save_analysis_run_is_called(self, monkeypatch):
+        called = {}
+
+        def spy(**kw):
+            called.update(kw)
+            return _DISABLED_DB
+
+        _patch_all(monkeypatch)
+        monkeypatch.setattr(streamlit_app, "save_analysis_run", spy)
+        run_analysis("/fake/resume.pdf", "https://example.com/job", False)
+        assert called, "save_analysis_run was not called after a successful analysis"
+
+    def test_save_analysis_result_is_called(self, monkeypatch):
+        called = {}
+
+        def spy(**kw):
+            called.update(kw)
+            return _DISABLED_DB
+
+        _patch_all(monkeypatch)
+        monkeypatch.setattr(streamlit_app, "save_analysis_result", spy)
+        run_analysis("/fake/resume.pdf", "https://example.com/job", False)
+        assert called, "save_analysis_result was not called after a successful analysis"
+
+    def test_save_usage_event_called_with_analysis_completed(self, monkeypatch):
+        captured = {}
+
+        def spy(**kw):
+            captured.update(kw)
+            return _DISABLED_DB
+
+        _patch_all(monkeypatch)
+        monkeypatch.setattr(streamlit_app, "save_usage_event", spy)
+        run_analysis("/fake/resume.pdf", "https://example.com/job", False)
+        assert captured.get("event_name") == "analysis_completed"
+
+    def test_fit_score_passed_to_save_analysis_run(self, monkeypatch):
+        captured = {}
+
+        def spy(**kw):
+            captured.update(kw)
+            return _DISABLED_DB
+
+        _patch_all(monkeypatch)
+        monkeypatch.setattr(streamlit_app, "save_analysis_run", spy)
+        run_analysis("/fake/resume.pdf", "https://example.com/job", False)
+        assert captured.get("fit_score") == _FAKE_REPORT["fit_score"]
+
+    def test_no_resume_text_in_save_analysis_run(self, monkeypatch):
+        captured = {}
+
+        def spy(**kw):
+            captured.update(kw)
+            return _DISABLED_DB
+
+        _patch_all(monkeypatch)
+        monkeypatch.setattr(streamlit_app, "save_analysis_run", spy)
+        run_analysis("/fake/resume.pdf", "https://example.com/job", False)
+        assert "resume_text" not in captured, "Full resume text must never be stored"
+
+    def test_result_unchanged_when_database_disabled(self, monkeypatch):
+        _patch_all(monkeypatch)
+        result = run_analysis("/fake/resume.pdf", "https://example.com/job", False)
+        assert result["report"] == _FAKE_REPORT
+        assert result["tailoring_plan"] == _FAKE_TAILORING_PLAN
+
+    def test_result_unchanged_when_database_raises(self, monkeypatch):
+        def explode(**kw):
+            raise RuntimeError("Supabase is down")
+
+        _patch_all(monkeypatch)
+        monkeypatch.setattr(streamlit_app, "save_analysis_run", explode)
+        result = run_analysis("/fake/resume.pdf", "https://example.com/job", False)
+        assert result is not None
+        assert result["report"] == _FAKE_REPORT

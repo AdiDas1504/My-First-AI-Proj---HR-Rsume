@@ -21,6 +21,12 @@ from src.output_writer import (
 from src.ai_config import is_ai_configured
 from src.claude_resume_writer import generate_claude_tailored_resume
 from src.ai_output_validator import validate_ai_output
+from src.database import (
+    save_analysis_run,
+    save_analysis_result,
+    save_usage_event,
+    save_app_error,
+)
 
 
 # ─── helpers ──────────────────────────────────────────────────────────────────
@@ -74,6 +80,43 @@ def run_analysis(resume_path, job_source, use_claude):
         )
         claude_safety_review = validate_ai_output(claude_text)
         claude_word_path     = save_claude_tailored_resume_word(claude_text)
+
+    # ── optional database persistence (never crashes the app) ─────────────────
+    try:
+        _run = save_analysis_run(
+            job_label=str(job_source)[:500],
+            fit_score=report.get("fit_score"),
+            fit_level=report.get("fit_level", ""),
+            job_source_type=job_details.get("source_type", ""),
+            resume_filename=Path(resume_path).name,
+            raw_job_chars=job_details.get("raw_text_length", 0),
+            requirements_chars=job_details.get("canonical_requirements_length", 0),
+            text_report_path=str(text_report_path),
+            word_report_path=str(word_report_path),
+        )
+        save_analysis_result(
+            run_id=_run.get("id"),
+            matched_keywords=analysis.get("matched_keywords", []),
+            missing_keywords=analysis.get("missing_keywords", []),
+            improvement_tips=report.get("improvement_tips", []),
+            extracted_requirements=job_text[:2000],
+            tailoring_plan_summary=str(tailoring_plan)[:1000],
+            safety_notes=str(claude_safety_review)[:500] if claude_safety_review else "",
+        )
+        save_usage_event(
+            event_name="analysis_completed",
+            job_source_type=job_details.get("source_type", ""),
+            used_claude=use_claude,
+        )
+    except Exception as _db_err:
+        try:
+            save_app_error(
+                error_type=type(_db_err).__name__,
+                error_message=str(_db_err)[:1000],
+                context="run_analysis persistence",
+            )
+        except Exception:
+            pass
 
     return {
         "resume_text": resume_text, "job_text": job_text, "job_details": job_details,
