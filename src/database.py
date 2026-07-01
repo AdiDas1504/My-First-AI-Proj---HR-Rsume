@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import logging
 import os
+import uuid
 from typing import Any
 
 logger = logging.getLogger(__name__)
@@ -118,7 +119,10 @@ def save_analysis_run(
 
     logger.debug("Saving analysis_run attempted")
     try:
+        # Generate the id locally so we can return it without needing a SELECT policy.
+        run_id = str(uuid.uuid4())
         payload: dict[str, Any] = {
+            "id":                 run_id,
             "job_source_type":    job_source_type[:50],
             "job_url":            job_url[:500],
             "resume_filename":    resume_filename[:200],
@@ -133,9 +137,9 @@ def save_analysis_run(
             payload["session_id"] = session_id
         if app_version:
             payload["app_version"] = app_version[:50]
-        response = client.table("analysis_runs").insert(payload).execute()
-        rows = response.data or []
-        run_id = rows[0].get("id") if rows else None
+        # returning="minimal" tells PostgREST not to SELECT the row after insert,
+        # so no SELECT RLS policy is required.
+        client.table("analysis_runs").insert(payload, returning="minimal").execute()
         logger.debug("Saving analysis_run succeeded: %s", run_id)
         return {"status": "ok", "id": run_id}
     except Exception as exc:
@@ -185,11 +189,9 @@ def save_analysis_result(
         }
         if report_files:
             payload["report_files"] = report_files
-        response = client.table("analysis_results").insert(payload).execute()
-        rows = response.data or []
-        result_id = rows[0].get("id") if rows else None
-        logger.debug("Saving analysis_result succeeded: %s", result_id)
-        return {"status": "ok", "id": result_id}
+        client.table("analysis_results").insert(payload, returning="minimal").execute()
+        logger.debug("Saving analysis_result succeeded")
+        return {"status": "ok", "id": None}
     except Exception as exc:
         logger.warning(
             "Saving analysis_result failed: %s: %s", type(exc).__name__, exc
@@ -228,11 +230,9 @@ def save_usage_event(
             payload["session_id"] = session_id
         if metadata:
             payload["metadata"] = metadata
-        response = client.table("usage_events").insert(payload).execute()
-        rows = response.data or []
-        event_id = rows[0].get("id") if rows else None
-        logger.debug("Saving usage_event succeeded: %s", event_id)
-        return {"status": "ok", "id": event_id}
+        client.table("usage_events").insert(payload, returning="minimal").execute()
+        logger.debug("Saving usage_event succeeded")
+        return {"status": "ok", "id": None}
     except Exception as exc:
         logger.warning(
             "Saving usage_event failed: %s: %s", type(exc).__name__, exc
@@ -270,11 +270,9 @@ def save_app_error(
             payload["session_id"] = session_id
         if metadata:
             payload["metadata"] = metadata
-        response = client.table("app_errors").insert(payload).execute()
-        rows = response.data or []
-        err_id = rows[0].get("id") if rows else None
-        logger.debug("Saving app_error succeeded: %s", err_id)
-        return {"status": "ok", "id": err_id}
+        client.table("app_errors").insert(payload, returning="minimal").execute()
+        logger.debug("Saving app_error succeeded")
+        return {"status": "ok", "id": None}
     except Exception as exc:
         logger.warning(
             "Saving app_error failed: %s: %s", type(exc).__name__, exc

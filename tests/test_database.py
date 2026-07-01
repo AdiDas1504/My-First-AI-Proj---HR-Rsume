@@ -193,3 +193,83 @@ class TestDatabaseConfigured:
         # May return None (import error / network error) or a client — either is fine
         result = db.get_supabase_client()
         assert result is None or hasattr(result, "table")
+
+
+# ── 5. UUID generation and minimal-return insert ──────────────────────────────
+
+class _MockResponse:
+    """Simulates a PostgREST minimal-return response (no rows returned)."""
+    data = []
+
+
+class _MockBuilder:
+    """Captures insert() kwargs so tests can assert on them."""
+
+    def __init__(self):
+        self.captured_payload = {}
+        self.captured_kwargs  = {}
+
+    def insert(self, payload, **kwargs):
+        self.captured_payload.update(payload)
+        self.captured_kwargs.update(kwargs)
+        return self
+
+    def execute(self):
+        return _MockResponse()
+
+
+class _MockClient:
+    def __init__(self):
+        self.builder = _MockBuilder()
+
+    def table(self, name):
+        return self.builder
+
+
+class TestSaveAnalysisRunMinimalInsert:
+    """save_analysis_run must generate a local UUID and use returning=minimal."""
+
+    def _setup(self, monkeypatch):
+        db     = _reload_database(monkeypatch)
+        client = _MockClient()
+        monkeypatch.setattr(db, "get_supabase_client", lambda: client)
+        return db, client
+
+    def test_returns_ok_status(self, monkeypatch):
+        db, _ = self._setup(monkeypatch)
+        result = db.save_analysis_run(job_url="https://example.com", match_score=80)
+        assert result["status"] == "ok"
+
+    def test_returns_non_none_id(self, monkeypatch):
+        db, _ = self._setup(monkeypatch)
+        result = db.save_analysis_run(job_url="https://example.com", match_score=80)
+        assert result["id"] is not None
+
+    def test_returned_id_is_uuid_v4(self, monkeypatch):
+        import re
+        db, _ = self._setup(monkeypatch)
+        result = db.save_analysis_run(job_url="https://example.com", match_score=80)
+        uuid_v4 = re.compile(
+            r"^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+        )
+        assert uuid_v4.match(result["id"]), f"Expected UUID v4, got: {result['id']}"
+
+    def test_uuid_is_included_in_insert_payload(self, monkeypatch):
+        db, client = self._setup(monkeypatch)
+        result = db.save_analysis_run(job_url="https://example.com", match_score=80)
+        assert client.builder.captured_payload.get("id") == result["id"]
+
+    def test_insert_uses_returning_minimal(self, monkeypatch):
+        db, client = self._setup(monkeypatch)
+        db.save_analysis_run(job_url="https://example.com", match_score=80)
+        assert client.builder.captured_kwargs.get("returning") == "minimal"
+
+    def test_two_calls_produce_different_uuids(self, monkeypatch):
+        db     = _reload_database(monkeypatch)
+        client = _MockClient()
+        monkeypatch.setattr(db, "get_supabase_client", lambda: client)
+        r1 = db.save_analysis_run()
+        # Replace builder so second insert doesn't collide
+        client.builder = _MockBuilder()
+        r2 = db.save_analysis_run()
+        assert r1["id"] != r2["id"]
