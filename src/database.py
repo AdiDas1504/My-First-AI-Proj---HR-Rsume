@@ -16,8 +16,11 @@ Full resume text and resume files are never stored.
 
 from __future__ import annotations
 
+import logging
 import os
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 
 # ── credential resolution ──────────────────────────────────────────────────────
@@ -48,7 +51,9 @@ def _get_credentials() -> tuple[str | None, str | None]:
 def is_database_configured() -> bool:
     """Return True only when both Supabase credentials are present."""
     url, key = _get_credentials()
-    return bool(url and key)
+    configured = bool(url and key)
+    logger.debug("Database configured: %s", configured)
+    return configured
 
 
 def get_supabase_client() -> Any | None:
@@ -62,11 +67,17 @@ def get_supabase_client() -> Any | None:
     """
     url, key = _get_credentials()
     if not (url and key):
+        logger.debug("Supabase client not configured: missing credentials")
         return None
     try:
         from supabase import create_client
-        return create_client(url, key)
-    except Exception:
+        client = create_client(url, key)
+        logger.debug("Supabase client created")
+        return client
+    except Exception as exc:
+        logger.warning(
+            "Supabase client creation failed: %s: %s", type(exc).__name__, exc
+        )
         return None
 
 
@@ -97,6 +108,7 @@ def save_analysis_run(
     if client is None:
         return _DISABLED
 
+    logger.debug("Saving analysis_run attempted")
     try:
         payload = {
             "job_label":          job_label[:500],
@@ -111,8 +123,13 @@ def save_analysis_run(
         }
         response = client.table("analysis_runs").insert(payload).execute()
         rows = response.data or []
-        return {"status": "ok", "id": rows[0].get("id") if rows else None}
-    except Exception:
+        run_id = rows[0].get("id") if rows else None
+        logger.debug("Saving analysis_run succeeded: %s", run_id)
+        return {"status": "ok", "id": run_id}
+    except Exception as exc:
+        logger.warning(
+            "Saving analysis_run failed: %s: %s", type(exc).__name__, exc
+        )
         return {"status": "error", "id": None}
 
 
@@ -135,6 +152,7 @@ def save_analysis_result(
     if client is None:
         return _DISABLED
 
+    logger.debug("Saving analysis_result attempted")
     try:
         payload = {
             "run_id":                  run_id,
@@ -147,8 +165,13 @@ def save_analysis_result(
         }
         response = client.table("analysis_results").insert(payload).execute()
         rows = response.data or []
-        return {"status": "ok", "id": rows[0].get("id") if rows else None}
-    except Exception:
+        result_id = rows[0].get("id") if rows else None
+        logger.debug("Saving analysis_result succeeded: %s", result_id)
+        return {"status": "ok", "id": result_id}
+    except Exception as exc:
+        logger.warning(
+            "Saving analysis_result failed: %s: %s", type(exc).__name__, exc
+        )
         return {"status": "error", "id": None}
 
 
@@ -167,6 +190,7 @@ def save_usage_event(
     if client is None:
         return _DISABLED
 
+    logger.debug("Saving usage_event attempted: %s", event_name)
     try:
         payload = {
             "event_name":      event_name[:100],
@@ -175,8 +199,13 @@ def save_usage_event(
         }
         response = client.table("usage_events").insert(payload).execute()
         rows = response.data or []
-        return {"status": "ok", "id": rows[0].get("id") if rows else None}
-    except Exception:
+        event_id = rows[0].get("id") if rows else None
+        logger.debug("Saving usage_event succeeded: %s", event_id)
+        return {"status": "ok", "id": event_id}
+    except Exception as exc:
+        logger.warning(
+            "Saving usage_event failed: %s: %s", type(exc).__name__, exc
+        )
         return {"status": "error", "id": None}
 
 
@@ -195,6 +224,7 @@ def save_app_error(
     if client is None:
         return _DISABLED
 
+    logger.debug("Saving app_error attempted: %s", error_type)
     try:
         payload = {
             "error_type":    error_type[:200],
@@ -203,6 +233,11 @@ def save_app_error(
         }
         response = client.table("app_errors").insert(payload).execute()
         rows = response.data or []
-        return {"status": "ok", "id": rows[0].get("id") if rows else None}
-    except Exception:
+        err_id = rows[0].get("id") if rows else None
+        logger.debug("Saving app_error succeeded: %s", err_id)
+        return {"status": "ok", "id": err_id}
+    except Exception as exc:
+        logger.warning(
+            "Saving app_error failed: %s: %s", type(exc).__name__, exc
+        )
         return {"status": "error", "id": None}
