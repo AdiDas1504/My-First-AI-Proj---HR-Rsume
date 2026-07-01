@@ -90,6 +90,18 @@ sudo apt-get install tesseract-ocr
 
 If OCR is not installed, the app will still work for PDF, DOCX, and URL job sources. Image input will fail with an error message.
 
+### Streamlit Community Cloud
+
+Streamlit Cloud uses `packages.txt` in the repo root to install system (apt) packages before the Python environment is built. The file **must be committed** for OCR to work on Streamlit Cloud:
+
+```
+tesseract-ocr
+tesseract-ocr-eng
+tesseract-ocr-heb
+```
+
+This file is already present in the repo as `packages.txt`. Do not remove it.
+
 ---
 
 ## Privacy Warning

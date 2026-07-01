@@ -10,4 +10,5 @@ pymupdf
 anthropic
 python-dotenv
 streamlit
+supabase
 pytest
