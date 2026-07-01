@@ -339,7 +339,7 @@ class TestRunAnalysisDatabasePersistence:
         run_analysis("/fake/resume.pdf", "https://example.com/job", False)
         assert captured.get("event_name") == "analysis_completed"
 
-    def test_fit_score_passed_to_save_analysis_run(self, monkeypatch):
+    def test_match_score_passed_to_save_analysis_run(self, monkeypatch):
         captured = {}
 
         def spy(**kw):
@@ -349,7 +349,7 @@ class TestRunAnalysisDatabasePersistence:
         _patch_all(monkeypatch)
         monkeypatch.setattr(streamlit_app, "save_analysis_run", spy)
         run_analysis("/fake/resume.pdf", "https://example.com/job", False)
-        assert captured.get("fit_score") == _FAKE_REPORT["fit_score"]
+        assert captured.get("match_score") == _FAKE_REPORT["fit_score"]
 
     def test_no_resume_text_in_save_analysis_run(self, monkeypatch):
         captured = {}

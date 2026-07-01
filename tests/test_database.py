@@ -79,31 +79,34 @@ class TestDatabaseDisabled:
 
     def test_save_analysis_run_does_not_raise(self, monkeypatch):
         db = _reload_database(monkeypatch)
-        result = db.save_analysis_run(job_label="Test Job", fit_score=75)
+        result = db.save_analysis_run(job_url="https://example.com/job", match_score=75)
         assert result is not None
 
     def test_save_analysis_run_returns_disabled(self, monkeypatch):
         db = _reload_database(monkeypatch)
-        result = db.save_analysis_run(job_label="Test Job", fit_score=75)
+        result = db.save_analysis_run(job_url="https://example.com/job", match_score=75)
         assert result.get("status") == "disabled"
 
     def test_save_analysis_result_does_not_raise(self, monkeypatch):
         db = _reload_database(monkeypatch)
         result = db.save_analysis_result(
-            run_id=None,
-            matched_keywords=["python"],
-            missing_keywords=["agile"],
+            analysis_id=None,
+            matched_skills=["python"],
+            missing_skills=["agile"],
         )
         assert result is not None
 
     def test_save_analysis_result_returns_disabled(self, monkeypatch):
         db = _reload_database(monkeypatch)
-        result = db.save_analysis_result(run_id=None)
+        result = db.save_analysis_result(analysis_id=None)
         assert result.get("status") == "disabled"
 
     def test_save_usage_event_does_not_raise(self, monkeypatch):
         db = _reload_database(monkeypatch)
-        result = db.save_usage_event(event_name="analysis_run", used_claude=False)
+        result = db.save_usage_event(
+            event_name="analysis_run",
+            metadata={"used_claude": False},
+        )
         assert result is not None
 
     def test_save_usage_event_returns_disabled(self, monkeypatch):

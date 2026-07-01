@@ -88,18 +88,26 @@ _DISABLED: dict[str, Any] = {"status": "disabled", "id": None}
 
 def save_analysis_run(
     *,
-    job_label: str = "",
-    fit_score: int | None = None,
+    job_url: str = "",
+    match_score: int | None = None,
+    match_label: str = "",
     fit_level: str = "",
     job_source_type: str = "",
     resume_filename: str = "",
     raw_job_chars: int = 0,
     requirements_chars: int = 0,
-    text_report_path: str = "",
-    word_report_path: str = "",
+    session_id: str | None = None,
+    app_version: str = "",
+    status: str = "completed",
 ) -> dict[str, Any]:
     """
     Persist a high-level analysis run record.
+
+    Column mapping (schema → arg):
+      match_score  ← match_score (was fit_score)
+      match_label  ← match_label
+      fit_level    ← fit_level
+      job_url      ← job_url  (was job_label)
 
     Does NOT accept resume_text or resume file content.
     Returns a disabled-result dict when the database is not configured.
@@ -110,17 +118,21 @@ def save_analysis_run(
 
     logger.debug("Saving analysis_run attempted")
     try:
-        payload = {
-            "job_label":          job_label[:500],
-            "fit_score":          fit_score,
-            "fit_level":          fit_level[:100],
+        payload: dict[str, Any] = {
             "job_source_type":    job_source_type[:50],
+            "job_url":            job_url[:500],
             "resume_filename":    resume_filename[:200],
+            "match_score":        match_score,
+            "match_label":        match_label[:100],
+            "fit_level":          fit_level[:100],
             "raw_job_chars":      raw_job_chars,
             "requirements_chars": requirements_chars,
-            "text_report_path":   text_report_path[:500],
-            "word_report_path":   word_report_path[:500],
+            "status":             status[:50],
         }
+        if session_id:
+            payload["session_id"] = session_id
+        if app_version:
+            payload["app_version"] = app_version[:50]
         response = client.table("analysis_runs").insert(payload).execute()
         rows = response.data or []
         run_id = rows[0].get("id") if rows else None
@@ -135,16 +147,24 @@ def save_analysis_run(
 
 def save_analysis_result(
     *,
-    run_id: Any = None,
-    matched_keywords: list[str] | None = None,
-    missing_keywords: list[str] | None = None,
+    analysis_id: Any = None,
+    matched_skills: list[str] | None = None,
+    missing_skills: list[str] | None = None,
     improvement_tips: list[str] | None = None,
     extracted_requirements: str = "",
-    tailoring_plan_summary: str = "",
+    tailoring_plan: str = "",
     safety_notes: str = "",
+    report_files: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """
-    Persist keyword match results linked to a run_id from save_analysis_run.
+    Persist keyword match results linked to an analysis_id from save_analysis_run.
+
+    Column mapping (schema → arg):
+      matched_skills  ← matched_skills (was matched_keywords)
+      missing_skills  ← missing_skills (was missing_keywords)
+      tailoring_plan  ← tailoring_plan (was tailoring_plan_summary)
+      analysis_id     ← analysis_id   (was run_id)
+      report_files    ← report_files jsonb (was text_report_path / word_report_path)
 
     Returns a disabled-result dict when the database is not configured.
     """
@@ -154,15 +174,17 @@ def save_analysis_result(
 
     logger.debug("Saving analysis_result attempted")
     try:
-        payload = {
-            "run_id":                  run_id,
-            "matched_keywords":        matched_keywords or [],
-            "missing_keywords":        missing_keywords or [],
-            "improvement_tips":        improvement_tips or [],
-            "extracted_requirements":  extracted_requirements[:2000],
-            "tailoring_plan_summary":  tailoring_plan_summary[:1000],
-            "safety_notes":            safety_notes[:500],
+        payload: dict[str, Any] = {
+            "analysis_id":            analysis_id,
+            "matched_skills":         matched_skills or [],
+            "missing_skills":         missing_skills or [],
+            "improvement_tips":       improvement_tips or [],
+            "extracted_requirements": extracted_requirements[:2000],
+            "tailoring_plan":         tailoring_plan[:1000],
+            "safety_notes":           safety_notes[:500],
         }
+        if report_files:
+            payload["report_files"] = report_files
         response = client.table("analysis_results").insert(payload).execute()
         rows = response.data or []
         result_id = rows[0].get("id") if rows else None
@@ -179,10 +201,14 @@ def save_usage_event(
     *,
     event_name: str = "",
     job_source_type: str = "",
-    used_claude: bool = False,
+    analysis_id: Any = None,
+    session_id: str | None = None,
+    metadata: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """
     Persist a lightweight usage/analytics event.
+
+    Fields with no dedicated column (e.g. used_claude) go into metadata jsonb.
 
     Returns a disabled-result dict when the database is not configured.
     """
@@ -192,11 +218,16 @@ def save_usage_event(
 
     logger.debug("Saving usage_event attempted: %s", event_name)
     try:
-        payload = {
+        payload: dict[str, Any] = {
             "event_name":      event_name[:100],
             "job_source_type": job_source_type[:50],
-            "used_claude":     used_claude,
         }
+        if analysis_id is not None:
+            payload["analysis_id"] = analysis_id
+        if session_id:
+            payload["session_id"] = session_id
+        if metadata:
+            payload["metadata"] = metadata
         response = client.table("usage_events").insert(payload).execute()
         rows = response.data or []
         event_id = rows[0].get("id") if rows else None
@@ -213,11 +244,14 @@ def save_app_error(
     *,
     error_type: str = "",
     error_message: str = "",
-    context: str = "",
+    analysis_id: Any = None,
+    session_id: str | None = None,
+    metadata: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """
     Persist an application error for observability.
 
+    The old 'context' field is now stored inside metadata jsonb.
     Returns a disabled-result dict when the database is not configured.
     """
     client = get_supabase_client()
@@ -226,11 +260,16 @@ def save_app_error(
 
     logger.debug("Saving app_error attempted: %s", error_type)
     try:
-        payload = {
+        payload: dict[str, Any] = {
             "error_type":    error_type[:200],
             "error_message": error_message[:1000],
-            "context":       context[:500],
         }
+        if analysis_id is not None:
+            payload["analysis_id"] = analysis_id
+        if session_id:
+            payload["session_id"] = session_id
+        if metadata:
+            payload["metadata"] = metadata
         response = client.table("app_errors").insert(payload).execute()
         rows = response.data or []
         err_id = rows[0].get("id") if rows else None

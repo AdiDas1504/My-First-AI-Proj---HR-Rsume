@@ -83,37 +83,43 @@ def run_analysis(resume_path, job_source, use_claude):
 
     # ── optional database persistence (never crashes the app) ─────────────────
     try:
+        _job_url = str(job_source) if isinstance(job_source, str) else ""
         _run = save_analysis_run(
-            job_label=str(job_source)[:500],
-            fit_score=report.get("fit_score"),
+            job_url=_job_url[:500],
+            match_score=report.get("fit_score"),
+            match_label=report.get("fit_level", ""),
             fit_level=report.get("fit_level", ""),
             job_source_type=job_details.get("source_type", ""),
             resume_filename=Path(resume_path).name,
             raw_job_chars=job_details.get("raw_text_length", 0),
             requirements_chars=job_details.get("canonical_requirements_length", 0),
-            text_report_path=str(text_report_path),
-            word_report_path=str(word_report_path),
         )
+        _analysis_id = _run.get("id")
         save_analysis_result(
-            run_id=_run.get("id"),
-            matched_keywords=analysis.get("matched_keywords", []),
-            missing_keywords=analysis.get("missing_keywords", []),
+            analysis_id=_analysis_id,
+            matched_skills=analysis.get("matched_keywords", []),
+            missing_skills=analysis.get("missing_keywords", []),
             improvement_tips=report.get("improvement_tips", []),
             extracted_requirements=job_text[:2000],
-            tailoring_plan_summary=str(tailoring_plan)[:1000],
+            tailoring_plan=str(tailoring_plan)[:1000],
             safety_notes=str(claude_safety_review)[:500] if claude_safety_review else "",
+            report_files={
+                "text_report": str(text_report_path),
+                "word_report": str(word_report_path),
+            },
         )
         save_usage_event(
             event_name="analysis_completed",
             job_source_type=job_details.get("source_type", ""),
-            used_claude=use_claude,
+            analysis_id=_analysis_id,
+            metadata={"used_claude": use_claude},
         )
     except Exception as _db_err:
         try:
             save_app_error(
                 error_type=type(_db_err).__name__,
                 error_message=str(_db_err)[:1000],
-                context="run_analysis persistence",
+                metadata={"context": "run_analysis persistence"},
             )
         except Exception:
             pass
