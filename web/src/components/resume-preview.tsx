@@ -138,6 +138,7 @@ export function ResumePreview({ resume, template = "classic" }: { resume: Tailor
 
   return (
     <article
+      data-resume-page
       dir={dir}
       lang={resume.language}
       className="mx-auto grid min-h-[297mm] w-full min-w-[170mm] max-w-[210mm] grid-cols-[34%_1fr] bg-white text-[10.5pt] leading-[1.45] text-[#1c1f1d] shadow-lift print:max-w-none print:shadow-none"

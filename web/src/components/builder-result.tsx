@@ -1,5 +1,6 @@
 "use client";
 
+import { PdfDownloadButton } from "./pdf-download-button";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -79,15 +80,7 @@ export function BuilderResult({
           <a href={`/api/builder/${draft.id}/docx`} className="btn btn-primary" aria-disabled={dirty} onClick={(e) => dirty && e.preventDefault()}>
             הורדה ל-Word
           </a>
-          <a
-            href={`/builder/${draft.id}/print`}
-            target="_blank"
-            className="btn btn-secondary"
-            aria-disabled={dirty}
-            onClick={(e) => dirty && e.preventDefault()}
-          >
-            הורדה ל-PDF
-          </a>
+          <PdfDownloadButton href={`/api/builder/${draft.id}/pdf`} printHref={`/builder/${draft.id}/print`} disabled={dirty} />
         </div>
       </div>
       {dirty && <p className="mt-3 text-sm text-amber-ink">יש שינויים שלא נשמרו. שמרו כדי להוריד את הגרסה המעודכנת.</p>}
