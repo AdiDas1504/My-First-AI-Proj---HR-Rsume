@@ -9,6 +9,7 @@ import {
   type IRunOptions,
 } from "docx";
 import type { TailoredResume } from "./types";
+import { isMilitary, splitSkills } from "./resume-layout";
 
 /**
  * ATS-friendly Word export: one column, real text (no tables or text boxes),
@@ -16,8 +17,8 @@ import type { TailoredResume } from "./types";
  */
 
 const LABELS = {
-  he: { summary: "תקציר", experience: "ניסיון תעסוקתי", education: "השכלה", skills: "מיומנויות", languages: "שפות", certifications: "הסמכות", present: "היום" },
-  en: { summary: "Summary", experience: "Experience", education: "Education", skills: "Skills", languages: "Languages", certifications: "Certifications", present: "Present" },
+  he: { summary: "על עצמי", experience: "ניסיון תעסוקתי", military: "שירות צבאי", education: "השכלה", skills: "כישורים", tools: "כלים מקצועיים", languages: "שפות", certifications: "הסמכות", present: "היום" },
+  en: { summary: "Profile", experience: "Experience", military: "Military Service", education: "Education", skills: "Skills", tools: "Tools", languages: "Languages", certifications: "Certifications", present: "Present" },
 };
 
 const FOREST = "1F4D3A";
@@ -72,7 +73,7 @@ export async function buildResumeDocx(r: TailoredResume): Promise<Buffer> {
       spacing: { after: 40 },
     }),
   );
-  if (r.headline) children.push(para([run(r.headline, { size: 23, sizeComplexScript: 23 })]));
+  // No headline under the name: job titles appear only in their experience entries.
   const contact = [r.contact.phone, r.contact.email, r.contact.location, ...r.contact.links].filter(Boolean);
   if (contact.length) children.push(para([run(contact.join("  |  "), { color: "555555" })]));
 
@@ -81,16 +82,19 @@ export async function buildResumeDocx(r: TailoredResume): Promise<Buffer> {
     children.push(para([run(r.summary)]));
   }
 
-  if (r.experience.length) {
-    children.push(heading(L.experience));
-    for (const e of r.experience) {
-      const titleLine = [e.title, e.organization].filter(Boolean).join(rtl ? " | " : " | ");
+  const jobSection = (label: string, items: TailoredResume["experience"]) => {
+    if (!items.length) return;
+    children.push(heading(label));
+    for (const e of items) {
+      const titleLine = [e.title, e.organization].filter(Boolean).join(" | ");
       children.push(para([run(titleLine, { bold: true })], { spacing: { before: 120, after: 20 } }));
       const meta = [dates(e.start, e.end), e.location].filter(Boolean).join(" · ");
-      if (meta) children.push(para([run(meta, { color: "555555", size: 19, sizeComplexScript: 19 })]));
+      if (meta) children.push(para([run(meta, { color: "555555", size: 19, sizeComplexScript: 19, italics: true })]));
       e.bullets.forEach((b) => children.push(bullet(b)));
     }
-  }
+  };
+  jobSection(L.experience, r.experience.filter((e) => !isMilitary(e)));
+  jobSection(L.military, r.experience.filter((e) => isMilitary(e)));
 
   if (r.education.length) {
     children.push(heading(L.education));
@@ -106,7 +110,9 @@ export async function buildResumeDocx(r: TailoredResume): Promise<Buffer> {
     children.push(heading(label));
     children.push(para([run(items.join(" · "))]));
   };
-  listSection(L.skills, r.skills);
+  const split = splitSkills(r.skills, r.language);
+  listSection(L.skills, split.skills);
+  listSection(L.tools, split.tools);
   listSection(L.certifications, r.certifications);
   listSection(L.languages, r.languages);
 

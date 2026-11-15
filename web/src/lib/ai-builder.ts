@@ -1,7 +1,7 @@
 import "server-only";
 import { z } from "zod";
 import { config, demo } from "./config";
-import { HONESTY_RULES, USER_VOICE, callTool, resumeJsonSchema, resumeSchema } from "./ai";
+import { HONESTY_RULES, RESUME_STYLE, USER_VOICE, callTool, resumeJsonSchema, resumeSchema } from "./ai";
 import { assembleResume, emptyAnswers, emptyRole } from "./builder";
 import type { BuilderAnswers, BuilderRole, TailoredResume } from "./types";
 
@@ -200,10 +200,10 @@ export async function runBuild(
     system: `${BUILDER_RULES}
 
 Task: write a complete, professional, ready-to-send resume in ${lang} from the person's answers${sourceResumeText ? " and their original resume" : ""}, aimed at their target role.
-- Turn their own words and follow-up answers into strong, concise achievement bullets (action + what + result/scale when they gave one). Up to 6 bullets per role, most relevant first.
+- Turn their own words and follow-up answers into strong, concise achievement bullets (action + what + result/scale when they gave one), most relevant first.
+${RESUME_STYLE}
 - Every number, employer, title, date, tool, degree and certification must appear in the answers or original resume. If they gave no result, write the responsibility well; do not invent one.
-- Write a 2-4 sentence summary built only from their real experience, framed for the target role.
-- Headline: their target role or most recent real title. Military or national service is a normal experience entry when given.
+- The summary is built only from their real experience, framed for the target role.
 - Keep dates exactly as given. Translate faithfully if the source language differs; translation adds nothing.
 - notes: 2-5 short Hebrew points (second person) on what you emphasised and what they could add later if true.`,
     content: [

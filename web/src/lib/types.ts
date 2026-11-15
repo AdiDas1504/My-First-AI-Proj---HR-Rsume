@@ -73,6 +73,8 @@ export type ExperienceItem = {
   start: string;
   end: string;
   bullets: string[];
+  /** Military or national service (shown in its own section). */
+  military?: boolean;
 };
 
 export type EducationItem = {

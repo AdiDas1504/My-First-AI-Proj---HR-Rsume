@@ -134,6 +134,18 @@ const scanSchema = z.object({
   sampleRewrite: z.object({ before: z.string(), after: z.string() }).nullable().default(null),
 });
 
+/** How a modern Israeli resume reads: short, scannable, one page where possible. */
+export const RESUME_STYLE = `
+Resume style (current Israeli market standard, two-column layout with a sidebar for contact, education, skills, tools and languages):
+- Keep it short and scannable, ideally one page. Every bullet is one line where possible (max ~20 words), starting with a strong action and ending with scope or result when one is known.
+- Bullets: up to 4 for the most recent / most relevant role, 2-3 for other roles, 1-2 for military service and roles older than ~10 years.
+- Summary ("על עצמי"): 2-3 sentences, about 40-60 words, written for the target role.
+- headline: always an empty string. Never put the current or target job title under the name; titles appear only in their experience entries.
+- Mark military or national service with military: true; it is shown in its own section.
+- Skills: short items (1-4 words each). Put software, systems and tools as their own short items (e.g. "Excel", "SAP", "Power BI").
+- Dates as "Month YYYY" or "YYYY", consistently; an ongoing role has an empty end.
+`.trim();
+
 export const USER_VOICE = `
 Voice for every user-facing text: Hebrew, speaking directly to the candidate in second person ("יש לך", "הניסיון שלך"), never "המועמד". Warm, confident, specific and short, like a sharp career coach who is on their side. Lead with what already works, then frame gaps as concrete opportunities. Stay honest: never promise interviews or results, never imply a missing skill can be added unless it is true.
 `.trim();
@@ -238,6 +250,7 @@ const experienceSchema = z.object({
   start: z.string().default(""),
   end: z.string().default(""),
   bullets: z.array(z.string()),
+  military: z.boolean().default(false),
 });
 
 export const resumeSchema = z.object({
@@ -285,7 +298,7 @@ export const resumeJsonSchema = {
   properties: {
     language: { type: "string", enum: ["he", "en"] },
     fullName: str,
-    headline: { type: "string", description: "Professional headline, from the resume's real roles" },
+    headline: { type: "string", description: "Always an empty string. Job titles appear only inside their experience entries." },
     contact: {
       type: "object",
       properties: { email: str, phone: str, location: str, links: strArr },
@@ -296,8 +309,16 @@ export const resumeJsonSchema = {
       type: "array",
       items: {
         type: "object",
-        properties: { title: str, organization: str, location: str, start: str, end: str, bullets: strArr },
-        required: ["title", "organization", "location", "start", "end", "bullets"],
+        properties: {
+          title: str,
+          organization: str,
+          location: str,
+          start: str,
+          end: str,
+          bullets: strArr,
+          military: { type: "boolean", description: "true for military or national service (שירות צבאי / לאומי)" },
+        },
+        required: ["title", "organization", "location", "start", "end", "bullets", "military"],
       },
     },
     education: {
@@ -343,7 +364,7 @@ Task: produce a complete, ready-to-send resume tailored to the job posting, plus
 - ${languageRule}
 - Order and phrase experience bullets so the most relevant evidence for this job comes first. Use the posting's terminology only where the resume genuinely supports it.
 - Keep every employer, title, date and number exactly as in the resume. Never add metrics.
-- Keep it concise: up to 6 bullets per role, most recent roles first, a 2-4 sentence summary.
+- ${RESUME_STYLE}
 - Israeli conventions are fine (e.g. military service as an experience entry when it appears in the resume).
 - The analysis summary, strengths, change log and "add only if true" items are written in Hebrew for the user. ${USER_VOICE}
 - List the job's 6-15 most important requirements.`,

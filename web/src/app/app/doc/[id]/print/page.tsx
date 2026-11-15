@@ -16,7 +16,7 @@ export default async function PrintPage({ params }: { params: Promise<{ id: stri
   return (
     <div className="bg-[#e9dfd5] py-8 print:bg-white print:py-0">
       <div className="no-print container-page mb-6 flex flex-wrap items-center justify-between gap-4">
-        <p className="text-muted">בחלון ההדפסה בחרו ״שמירה כ-PDF״ כיעד. מומלץ לבטל כותרות עליונות ותחתונות.</p>
+        <p className="text-muted">בחלון ההדפסה בחרו ״שמירה כ-PDF״ כיעד, הפעילו ״גרפיקת רקע״ כדי לשמור את הצבעים, ובטלו כותרות עליונות ותחתונות.</p>
         <PrintButton />
       </div>
       <ResumePreview resume={doc.resume} />

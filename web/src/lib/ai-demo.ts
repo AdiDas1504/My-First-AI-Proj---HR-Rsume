@@ -97,7 +97,7 @@ export function demoTailor(resumeText: string, job: JobInput, language: "auto" |
   const resume: TailoredResume = {
     language: lang,
     fullName: lines[0]?.slice(0, 60) ?? "",
-    headline: lines[1]?.slice(0, 80) ?? "",
+    headline: "",
     contact: { email, phone, location: "", links: [] },
     summary: bullets[0] ?? "",
     experience: [

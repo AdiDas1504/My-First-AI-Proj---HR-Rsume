@@ -258,7 +258,7 @@ html.a11y-no-motion *::after {
 @media print {
   @page {
     size: A4;
-    margin: 14mm 14mm;
+    margin: 0;
   }
   html,
   body {
