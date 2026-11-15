@@ -246,3 +246,20 @@ describe("AI request shaping", () => {
     expect(strict.properties.list.additionalProperties).toBeUndefined();
   });
 });
+
+import { isMilitary, splitSkills } from "../src/lib/resume-layout";
+
+describe("resume layout", () => {
+  it("puts military and national service in its own section", () => {
+    expect(isMilitary({ title: "קצין מדריך", organization: "שירות צבאי" })).toBe(true);
+    expect(isMilitary({ title: 'סמ"פ', organization: 'צה"ל' })).toBe(true);
+    expect(isMilitary({ title: "רכזת", organization: "שירות לאומי" })).toBe(true);
+    expect(isMilitary({ title: "מנהל פרויקטים", organization: "שופרסל" })).toBe(false);
+    expect(isMilitary({ title: "x", organization: "y", military: true })).toBe(true);
+  });
+  it("splits Hebrew skills from Latin-script tools", () => {
+    const r = splitSkills(["אפיון צרכים", "Excel", "Power BI", "חשיבה אנליטית", "כלי בינה מלאכותית (AI)"], "he");
+    expect(r.skills).toEqual(["אפיון צרכים", "חשיבה אנליטית"]);
+    expect(r.tools).toEqual(["Excel", "Power BI", "כלי בינה מלאכותית (AI)"]);
+  });
+});

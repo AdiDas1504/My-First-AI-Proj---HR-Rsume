@@ -5,23 +5,23 @@ import { TEMPLATE_NAMES } from "./resume-preview";
 
 /** Small visual swatches of the three designs. Saves the choice right away. */
 function Swatch({ t }: { t: ResumeTemplate }) {
+  const side = t === "classic" ? "bg-[#3e5c80]" : t === "modern" ? "bg-[#1f4d3a]" : "bg-[#e6e1db]";
+  const sideLine = t === "minimal" ? "bg-[#9a948e]" : "bg-white/70";
+  const head = t === "classic" ? "bg-[#3e5c80]" : t === "modern" ? "bg-[#1f4d3a]" : "bg-[#111]";
   const line = "h-1.5 rounded-full bg-[#d9d4cf]";
   return (
-    <div aria-hidden="true" className="h-28 overflow-hidden rounded-lg bg-white p-3 shadow-soft">
-      {t === "modern" ? (
-        <div className="-m-3 mb-2 bg-[#1f4d3a] p-3">
-          <div className="h-2.5 w-2/3 rounded-full bg-white" />
-          <div className="mt-1.5 h-1.5 w-1/3 rounded-full bg-[#fbe7c6]" />
-        </div>
-      ) : (
-        <div className={t === "minimal" ? "flex flex-col items-center" : ""}>
-          <div className={`h-2.5 w-2/3 rounded-full ${t === "classic" ? "bg-[#1f4d3a]" : "bg-[#111]"}`} />
-          <div className="mt-1.5 h-1.5 w-1/3 rounded-full bg-[#9a9a9a]" />
-        </div>
-      )}
-      <div className={`mt-3 h-[2px] ${t === "minimal" ? "bg-[#111]" : t === "classic" ? "bg-[#d9cbbe]" : "w-1/4 bg-[#e9a23b]"}`} />
-      <div className="mt-2 space-y-1.5">
+    <div aria-hidden="true" className="grid h-28 grid-cols-[34%_1fr] overflow-hidden rounded-lg bg-white shadow-soft">
+      <div className={`space-y-1.5 p-2 ${side}`}>
+        <div className={`h-2 w-4/5 rounded-full ${t === "minimal" ? "bg-[#111]" : "bg-white"}`} />
+        <div className={`h-1 w-3/5 rounded-full ${sideLine}`} />
+        <div className={`h-1 w-2/3 rounded-full ${sideLine}`} />
+        <div className={`mt-2 h-1.5 w-1/2 rounded-full ${t === "modern" ? "bg-[#e9a23b]" : sideLine}`} />
+        <div className={`h-1 w-3/4 rounded-full ${sideLine}`} />
+      </div>
+      <div className="space-y-1.5 p-2">
+        <div className="h-2 w-1/2 rounded-full bg-[#1c1f1d]" />
         <div className={`${line} w-full`} />
+        <div className={`mt-2 h-1.5 w-1/3 rounded-full ${head}`} />
         <div className={`${line} w-5/6`} />
         <div className={`${line} w-2/3`} />
       </div>
@@ -65,7 +65,7 @@ export function TemplatePicker({
           </label>
         ))}
       </div>
-      <p className="hint mt-2">כל התבניות בנויות בעמודה אחת עם טקסט אמיתי, כך שמערכות סינון קוראות אותן. קובץ ה-Word תמיד נקי ופשוט.</p>
+      <p className="hint mt-2">העיצוב חל על התצוגה ועל ה-PDF. קובץ ה-Word נשמר בעמודה אחת עם אותם מדורים, כדי שמערכות סינון יקראו אותו בקלות.</p>
     </fieldset>
   );
 }

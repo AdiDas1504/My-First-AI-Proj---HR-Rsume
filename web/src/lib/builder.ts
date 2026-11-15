@@ -1,4 +1,5 @@
 import type { BuilderAnswers, BuilderRole, TailoredResume } from "./types";
+import { isMilitary } from "./resume-layout";
 
 /** Pure helpers for the resume builder, shared by server and client. */
 
@@ -64,7 +65,7 @@ export function assembleResume(a: BuilderAnswers): TailoredResume {
   return {
     language: a.target.language,
     fullName: a.personal.fullName,
-    headline: a.target.role,
+    headline: "",
     contact: {
       email: a.personal.email,
       phone: a.personal.phone,
@@ -80,6 +81,7 @@ export function assembleResume(a: BuilderAnswers): TailoredResume {
         location: r.location,
         start: r.start,
         end: r.end,
+        military: isMilitary(r),
         bullets: [
           ...r.description.split("\n").map((s) => s.trim()).filter(Boolean),
           ...r.followups.map((f) => f.answer.trim()).filter(Boolean),

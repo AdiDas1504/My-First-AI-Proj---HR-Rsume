@@ -1,162 +1,228 @@
-import type { ResumeTemplate, TailoredResume } from "@/lib/types";
+import { isMilitary, splitSkills } from "@/lib/resume-layout";
+import type { ExperienceItem, ResumeTemplate, TailoredResume } from "@/lib/types";
 
 const LABELS = {
-  he: { summary: "תקציר", experience: "ניסיון תעסוקתי", education: "השכלה", skills: "מיומנויות", languages: "שפות", certifications: "הסמכות", present: "היום" },
-  en: { summary: "Summary", experience: "Experience", education: "Education", skills: "Skills", languages: "Languages", certifications: "Certifications", present: "Present" },
+  he: {
+    about: "על עצמי",
+    experience: "ניסיון תעסוקתי",
+    military: "שירות צבאי",
+    education: "השכלה",
+    skills: "כישורים",
+    tools: "כלים מקצועיים",
+    languages: "שפות",
+    certifications: "הסמכות",
+    present: "היום",
+  },
+  en: {
+    about: "Profile",
+    experience: "Experience",
+    military: "Military Service",
+    education: "Education",
+    skills: "Skills",
+    tools: "Tools",
+    languages: "Languages",
+    certifications: "Certifications",
+    present: "Present",
+  },
 };
 
 /**
- * Three designs, all single-column with real text so screening systems (ATS)
- * read them: classic (forest accents), modern (bold header band), minimal (ink only).
+ * Two-column layout, as Israeli resumes are written today: a colored sidebar
+ * (name, contact, education, skills, tools, languages) and a main column
+ * (profile, experience, military service). Three color themes.
  */
-const STYLES: Record<
+const THEMES: Record<
   ResumeTemplate,
-  { header: string; name: string; headline: string; contact: string; section: string; marker: string; org: string }
+  { side: string; sideHead: string; sideText: string; sideMuted: string; sideMarker: string; mainHead: string; marker: string; titleRule: string }
 > = {
   classic: {
-    header: "",
-    name: "font-display text-[22pt] font-bold leading-tight text-[#1f4d3a]",
-    headline: "mt-1 text-[11.5pt] text-[#333]",
-    contact: "mt-2 text-[9.5pt] text-[#555]",
-    section: "border-b border-[#d9cbbe] pb-1 font-sans text-[0.8rem] font-bold uppercase tracking-[0.12em] text-[#1f4d3a]",
-    marker: "marker:text-[#1f4d3a]",
-    org: "font-normal text-[#444]",
+    side: "bg-[#3e5c80] text-white",
+    sideHead: "text-white",
+    sideText: "text-white",
+    sideMuted: "text-white/80",
+    sideMarker: "marker:text-white/70",
+    mainHead: "text-[#3e5c80]",
+    marker: "marker:text-[#3e5c80]",
+    titleRule: "",
   },
   modern: {
-    header: "-mx-[14mm] -mt-[12mm] mb-2 bg-[#1f4d3a] px-[14mm] pb-[7mm] pt-[10mm] text-white print:-mx-0 print:-mt-0 print:px-[8mm]",
-    name: "font-sans text-[24pt] font-extrabold leading-tight tracking-tight text-white",
-    headline: "mt-1 text-[12pt] font-medium text-[#fbe7c6]",
-    contact: "mt-3 text-[9.5pt] text-white/85",
-    section:
-      "flex items-center gap-2 font-sans text-[10.5pt] font-extrabold text-[#1f4d3a] before:inline-block before:h-[1.1em] before:w-[4px] before:rounded-full before:bg-[#e9a23b] before:content-['']",
+    side: "bg-[#1f4d3a] text-white",
+    sideHead: "text-[#fbe7c6]",
+    sideText: "text-white",
+    sideMuted: "text-white/80",
+    sideMarker: "marker:text-[#e9a23b]",
+    mainHead: "text-[#1f4d3a]",
     marker: "marker:text-[#e9a23b]",
-    org: "font-semibold text-[#1f4d3a]",
+    titleRule: "border-b-2 border-[#e9a23b] pb-1",
   },
   minimal: {
-    header: "text-center",
-    name: "font-display text-[24pt] font-medium leading-tight tracking-tight text-[#111]",
-    headline: "mt-1 text-[11pt] tracking-wide text-[#444]",
-    contact: "mt-2 justify-center text-[9.5pt] text-[#666]",
-    section: "border-b border-[#111] pb-1 font-sans text-[9.5pt] font-semibold uppercase tracking-[0.2em] text-[#111]",
+    side: "bg-[#f2efeb] text-[#1c1f1d]",
+    sideHead: "text-[#111]",
+    sideText: "text-[#1c1f1d]",
+    sideMuted: "text-[#555]",
+    sideMarker: "marker:text-[#111]",
+    mainHead: "text-[#111]",
     marker: "marker:text-[#111]",
-    org: "font-normal text-[#555]",
+    titleRule: "border-b border-[#111] pb-1",
   },
 };
-
-function Section({ title, className, children }: { title: string; className: string; children: React.ReactNode }) {
-  return (
-    <section className="mt-6 break-inside-avoid-page">
-      <h2 className={className}>{title}</h2>
-      <div className="mt-3">{children}</div>
-    </section>
-  );
-}
 
 function range(start: string, end: string, present: string) {
   return [start, end || (start ? present : "")].filter(Boolean).join(" – ");
 }
 
+function SideSection({ title, className, children }: { title: string; className: string; children: React.ReactNode }) {
+  return (
+    <section className="mt-7 break-inside-avoid">
+      <h2 className={`text-[13pt] font-bold leading-tight ${className}`}>{title}</h2>
+      <div className="mt-2.5 space-y-1.5">{children}</div>
+    </section>
+  );
+}
+
+function SideList({ items, className }: { items: string[]; className: string }) {
+  return (
+    <ul className={`list-[square] space-y-1 ps-4 ${className}`}>
+      {items.map((s, i) => (
+        <li key={i}>
+          <bdi>{s}</bdi>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+const GENERIC_SERVICE = /^\s*(שירות צבאי|שירות לאומי|צה["״']?ל|military service|national service|idf)\s*$/i;
+
+function Job({ e, present, marker }: { e: ExperienceItem; present: string; marker: string }) {
+  const org = GENERIC_SERVICE.test(e.organization) ? "" : e.organization;
+  return (
+    <div className="break-inside-avoid">
+      <p className="text-[11.5pt] font-bold leading-snug">
+        {e.title}
+        {org && <> | {org}</>}
+      </p>
+      <p className="mt-0.5 text-[9.5pt] italic text-[#555]">
+        <bdi>{[range(e.start, e.end, present), e.location].filter(Boolean).join(" · ")}</bdi>
+      </p>
+      {e.bullets.length > 0 && (
+        <ul className={`mt-1.5 list-[square] space-y-1 ps-5 ${marker}`}>
+          {e.bullets.map((b, j) => (
+            <li key={j}>{b}</li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function MainSection({ title, className, children }: { title: string; className: string; children: React.ReactNode }) {
+  return (
+    <section className="mt-6">
+      <h2 className={`text-[15pt] font-bold leading-tight ${className}`}>{title}</h2>
+      <div className="mt-3 space-y-4">{children}</div>
+    </section>
+  );
+}
+
 /** The resume as a printable A4 page. Used in editor previews and the PDF print view. */
 export function ResumePreview({ resume, template = "classic" }: { resume: TailoredResume; template?: ResumeTemplate }) {
   const L = LABELS[resume.language];
-  const t = STYLES[template];
+  const t = THEMES[template];
   const dir = resume.language === "he" ? "rtl" : "ltr";
-  const contact = [resume.contact.phone, resume.contact.email, resume.contact.location, ...resume.contact.links].filter(Boolean);
+  const contact = [resume.contact.email, resume.contact.phone, resume.contact.location, ...resume.contact.links].filter(Boolean);
+  const jobs = resume.experience.filter((e) => !isMilitary(e));
+  const service = resume.experience.filter((e) => isMilitary(e));
+  const { skills, tools } = splitSkills(resume.skills, resume.language);
+  const sideList = `${t.sideText} ${t.sideMarker}`;
 
   return (
     <article
       dir={dir}
       lang={resume.language}
-      className="mx-auto w-full max-w-[210mm] overflow-hidden bg-white px-[14mm] py-[12mm] text-[10.5pt] leading-[1.5] text-[#1c1f1d] shadow-lift print:max-w-none print:p-0 print:shadow-none"
+      className="mx-auto grid min-h-[297mm] w-full min-w-[170mm] max-w-[210mm] grid-cols-[34%_1fr] bg-white text-[10.5pt] leading-[1.45] text-[#1c1f1d] shadow-lift print:max-w-none print:shadow-none"
       style={{ fontFamily: '"Heebo Variable", Arial, Helvetica, sans-serif' }}
     >
-      <header className={t.header}>
-        <h1 className={t.name}>{resume.fullName}</h1>
-        {resume.headline && <p className={t.headline}>{resume.headline}</p>}
+      {/* ---------- sidebar ---------- */}
+      <aside className={`px-[7mm] py-[11mm] ${t.side}`}>
+        <h1 className={`text-[22pt] font-extrabold leading-[1.1] ${t.sideHead}`}>{resume.fullName}</h1>
         {contact.length > 0 && (
-          <p className={`flex flex-wrap gap-x-3 gap-y-1 ${t.contact}`}>
+          <ul className={`mt-4 space-y-1 text-[9.5pt] ${t.sideText}`}>
             {contact.map((c, i) => (
-              <span key={i} dir="auto">
-                {c}
-              </span>
+              <li key={i} className="break-words">
+                <bdi>{c}</bdi>
+              </li>
             ))}
-          </p>
+          </ul>
         )}
-      </header>
 
-      {resume.summary && (
-        <Section title={L.summary} className={t.section}>
-          <p>{resume.summary}</p>
-        </Section>
-      )}
-
-      {resume.experience.length > 0 && (
-        <Section title={L.experience} className={t.section}>
-          <div className="space-y-4">
-            {resume.experience.map((e, i) => (
-              <div key={i} className="break-inside-avoid">
-                <div className="flex flex-wrap items-baseline justify-between gap-x-4">
-                  <p className="font-bold">
-                    {e.title}
-                    {e.organization && <span className={t.org}> | {e.organization}</span>}
-                  </p>
-                  <p className="text-[9.5pt] text-[#555]" dir="auto">
-                    {[range(e.start, e.end, L.present), e.location].filter(Boolean).join(" · ")}
-                  </p>
-                </div>
-                {e.bullets.length > 0 && (
-                  <ul className={`mt-1.5 list-disc space-y-1 ps-5 ${t.marker}`}>
-                    {e.bullets.map((b, j) => (
-                      <li key={j}>{b}</li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            ))}
-          </div>
-        </Section>
-      )}
-
-      {resume.education.length > 0 && (
-        <Section title={L.education} className={t.section}>
-          <div className="space-y-2.5">
+        {resume.education.length > 0 && (
+          <SideSection title={L.education} className={t.sideHead}>
             {resume.education.map((e, i) => (
-              <div key={i} className="break-inside-avoid">
-                <div className="flex flex-wrap items-baseline justify-between gap-x-4">
-                  <p className="font-bold">
-                    {e.degree}
-                    {e.institution && <span className={t.org}> | {e.institution}</span>}
+              <div key={i} className="break-inside-avoid pb-1.5">
+                <p className="font-bold leading-snug">{e.degree}</p>
+                {e.institution && <p className={t.sideText}>{e.institution}</p>}
+                {(e.start || e.end) && (
+                  <p className={`text-[9.5pt] ${t.sideMuted}`}>
+                    <bdi>{range(e.start, e.end, L.present)}</bdi>
                   </p>
-                  <p className="text-[9.5pt] text-[#555]" dir="auto">{range(e.start, e.end, L.present)}</p>
-                </div>
-                {e.details && <p className="text-[#444]">{e.details}</p>}
+                )}
+                {e.details && <p className={`mt-1 text-[9.5pt] ${t.sideMuted}`}>{e.details}</p>}
               </div>
             ))}
-          </div>
-        </Section>
-      )}
+          </SideSection>
+        )}
+        {skills.length > 0 && (
+          <SideSection title={L.skills} className={t.sideHead}>
+            <SideList items={skills} className={sideList} />
+          </SideSection>
+        )}
+        {tools.length > 0 && (
+          <SideSection title={L.tools} className={t.sideHead}>
+            <SideList items={tools} className={sideList} />
+          </SideSection>
+        )}
+        {resume.certifications.length > 0 && (
+          <SideSection title={L.certifications} className={t.sideHead}>
+            <SideList items={resume.certifications} className={sideList} />
+          </SideSection>
+        )}
+        {resume.languages.length > 0 && (
+          <SideSection title={L.languages} className={t.sideHead}>
+            <SideList items={resume.languages} className={sideList} />
+          </SideSection>
+        )}
+      </aside>
 
-      {resume.skills.length > 0 && (
-        <Section title={L.skills} className={t.section}>
-          <p>{resume.skills.join(" · ")}</p>
-        </Section>
-      )}
-      {resume.certifications.length > 0 && (
-        <Section title={L.certifications} className={t.section}>
-          <p>{resume.certifications.join(" · ")}</p>
-        </Section>
-      )}
-      {resume.languages.length > 0 && (
-        <Section title={L.languages} className={t.section}>
-          <p>{resume.languages.join(" · ")}</p>
-        </Section>
-      )}
+      {/* ---------- main column ---------- */}
+      <div className="px-[9mm] py-[11mm]">
+        {resume.summary && (
+          <section>
+            <h2 className={`text-[18pt] font-extrabold leading-tight text-[#1c1f1d] ${t.titleRule}`}>{L.about}</h2>
+            <p className="mt-2">{resume.summary}</p>
+          </section>
+        )}
+        {jobs.length > 0 && (
+          <MainSection title={L.experience} className={t.mainHead}>
+            {jobs.map((e, i) => (
+              <Job key={i} e={e} present={L.present} marker={t.marker} />
+            ))}
+          </MainSection>
+        )}
+        {service.length > 0 && (
+          <MainSection title={L.military} className={t.mainHead}>
+            {service.map((e, i) => (
+              <Job key={i} e={e} present={L.present} marker={t.marker} />
+            ))}
+          </MainSection>
+        )}
+      </div>
     </article>
   );
 }
 
 export const TEMPLATE_NAMES: Record<ResumeTemplate, string> = {
-  classic: "קלאסית",
-  modern: "מודרנית",
-  minimal: "מינימליסטית",
+  classic: "כחול קלאסי",
+  modern: "ירוק מודרני",
+  minimal: "בהיר מינימליסטי",
 };

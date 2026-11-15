@@ -1,6 +1,7 @@
 "use client";
 
 import type { EducationItem, ExperienceItem, TailoredResume } from "@/lib/types";
+import { isMilitary } from "@/lib/resume-layout";
 
 const lines = (v: string) => v.split("\n").map((s) => s.trim()).filter(Boolean);
 const list = (v: string) => v.split(/[,\n]/).map((s) => s.trim()).filter(Boolean);
@@ -45,7 +46,6 @@ export function ResumeEditor({ value, onChange }: { value: TailoredResume; onCha
     <div className="card space-y-6 p-6" aria-label="עריכת קורות החיים" role="region">
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="שם מלא" dir={dir} value={value.fullName} onChange={(v) => set("fullName", v)} />
-        <Field label="כותרת מקצועית" dir={dir} value={value.headline} onChange={(v) => set("headline", v)} />
         <Field label="טלפון" dir="ltr" value={value.contact.phone} onChange={(v) => set("contact", { ...value.contact, phone: v })} />
         <Field label="אימייל" dir="ltr" value={value.contact.email} onChange={(v) => set("contact", { ...value.contact, email: v })} />
         <Field label="מיקום" dir={dir} value={value.contact.location} onChange={(v) => set("contact", { ...value.contact, location: v })} />
@@ -57,7 +57,7 @@ export function ResumeEditor({ value, onChange }: { value: TailoredResume; onCha
           hint="מופרדים בפסיק"
         />
       </div>
-      <Field label="תקציר" dir={dir} multiline value={value.summary} onChange={(v) => set("summary", v)} />
+      <Field label="על עצמי" dir={dir} multiline value={value.summary} onChange={(v) => set("summary", v)} />
 
       <fieldset className="space-y-4">
         <legend className="font-display text-xl font-bold">ניסיון</legend>
@@ -76,9 +76,15 @@ export function ResumeEditor({ value, onChange }: { value: TailoredResume; onCha
               value={e.bullets.join("\n")}
               onChange={(v) => setExp(i, { bullets: lines(v) })}
             />
-            <button type="button" className="text-sm text-danger underline" onClick={() => set("experience", value.experience.filter((_, j) => j !== i))}>
-              הסרת התפקיד
-            </button>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" className="size-4 accent-forest" checked={isMilitary(e)} onChange={(ev) => setExp(i, { military: ev.target.checked })} />
+                שירות צבאי / לאומי (מוצג במדור נפרד)
+              </label>
+              <button type="button" className="text-sm text-danger underline" onClick={() => set("experience", value.experience.filter((_, j) => j !== i))}>
+                הסרת התפקיד
+              </button>
+            </div>
           </div>
         ))}
         <button

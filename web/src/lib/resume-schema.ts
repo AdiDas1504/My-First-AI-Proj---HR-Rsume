@@ -18,6 +18,7 @@ export const resumeEditSchema = z.object({
         start: s,
         end: s,
         bullets: z.array(s).max(15),
+        military: z.boolean().optional(),
       }),
     )
     .max(20),
