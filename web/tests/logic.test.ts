@@ -215,3 +215,34 @@ describe("AI error messages", () => {
     expect(describeAiError(undefined, "Request timed out.").text).toContain("AI-TIMEOUT");
   });
 });
+
+import { rejectsForcedToolUse, thinkingFor, toStrictSchema } from "../src/lib/ai-request";
+
+describe("AI request shaping", () => {
+  it("knows which models reject forced tool use", () => {
+    expect(rejectsForcedToolUse("claude-sonnet-5-5")).toBe(true);
+    expect(rejectsForcedToolUse("claude-opus-5-5")).toBe(true);
+    expect(rejectsForcedToolUse("claude-haiku-5-5")).toBe(false);
+    expect(rejectsForcedToolUse("claude-sonnet-4-6")).toBe(false);
+  });
+  it("turns off up-front thinking only on Sonnet 5.5", () => {
+    expect(thinkingFor("claude-sonnet-5-5")).toEqual({ type: "between_tools" });
+    expect(thinkingFor("claude-haiku-5-5")).toBeUndefined();
+  });
+  it("adds additionalProperties:false to every object, nested and in arrays", () => {
+    const strict = toStrictSchema({
+      type: "object",
+      properties: {
+        a: { type: "object", properties: { b: { type: "string" } } },
+        list: { type: "array", items: { type: "object", properties: { c: { type: "string" } } } },
+        maybe: { anyOf: [{ type: "object", properties: {} }, { type: "null" }] },
+      },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    }) as Record<string, any>;
+    expect(strict.additionalProperties).toBe(false);
+    expect(strict.properties.a.additionalProperties).toBe(false);
+    expect(strict.properties.list.items.additionalProperties).toBe(false);
+    expect(strict.properties.maybe.anyOf[0].additionalProperties).toBe(false);
+    expect(strict.properties.list.additionalProperties).toBeUndefined();
+  });
+});
