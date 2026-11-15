@@ -238,19 +238,26 @@ Current priorities:
 7. Improve Word output formatting.
 8. Prepare project for portfolio presentation.
 
+## Web Product (`web/`)
+
+Approved by the owner in November 2026: the project is becoming a paid website.
+`web/` is a Next.js + Supabase app with phone (SMS) login, a free fit check,
+paid subscriptions and Claude-powered tailoring. See `web/README.md`.
+
+The same honesty, privacy and prompt-injection rules apply to `web/`; they live in
+`web/src/lib/ai.ts` (prompts) and `web/src/lib/honesty.ts` (deterministic check).
+Run `npm test`, `npx tsc --noEmit` and `npm run build` in `web/` after changes.
+
 ## Do Not Do Without Approval
 
-Do not add:
+Database, user accounts, payments and cloud deployment are approved for `web/` only.
+Still do not add without approval:
 
-* database
-* user accounts
-* payment system
-* cloud deployment
 * employer dashboard
 * candidate ranking
 * automatic job applications
 * ATS simulator
-* large new architecture
+* large new architecture beyond `web/`
 
 Do not modify `.env`.
 
