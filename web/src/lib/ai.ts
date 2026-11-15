@@ -7,6 +7,7 @@ import type { JobInput } from "./extract";
 import { computeScore, potentialScore, rankGaps } from "./scoring";
 import { newNumbers } from "./honesty";
 import { describeAiError } from "./ai-errors";
+import { rejectsForcedToolUse, thinkingFor, toStrictSchema } from "./ai-request";
 import type { AddOnlyIfTrue, Analysis, ScanResult, TailoredResume } from "./types";
 import { demoCoverLetter, demoScan, demoTailor } from "./ai-demo";
 
@@ -68,33 +69,51 @@ export async function callTool<T>(opts: {
   schema: z.ZodType<T>;
   maxTokens: number;
 }): Promise<T> {
-  let message: Anthropic.Message;
-  try {
-    message = await anthropic().messages.create({
-      model: opts.model,
-      max_tokens: opts.maxTokens,
-      system: opts.system,
-      tools: [opts.tool as Anthropic.Tool],
-      tool_choice: { type: "tool", name: opts.tool.name },
-      messages: [{ role: "user", content: opts.content }],
-    });
-  } catch (err) {
-    const e = err as { status?: number; message?: string; error?: unknown };
-    console.error("Claude API error", { status: e.status, model: opts.model, maxTokens: opts.maxTokens, message: e.message, error: e.error });
-    const { status, text } = describeAiError(e.status, e.message ?? "");
-    throw new UserError(text, status);
+  const auto = rejectsForcedToolUse(opts.model);
+  const tool = (
+    auto ? { ...opts.tool, input_schema: toStrictSchema(opts.tool.input_schema), strict: true } : opts.tool
+  ) as Anthropic.Tool;
+  const system = auto
+    ? `${opts.system}\n\nAnswer only by calling the "${opts.tool.name}" tool, exactly once, with your complete answer. Do not reply in plain text.`
+    : opts.system;
+  const thinking = thinkingFor(opts.model);
+
+  // With tool_choice "auto" the model may occasionally answer in text; one retry covers that.
+  for (let attempt = 0; attempt < (auto ? 2 : 1); attempt++) {
+    let message: Anthropic.Message;
+    try {
+      message = await anthropic().messages.create({
+        model: opts.model,
+        max_tokens: opts.maxTokens,
+        system,
+        tools: [tool],
+        tool_choice: auto ? { type: "auto" } : { type: "tool", name: opts.tool.name },
+        ...(thinking ? { thinking } : {}),
+        messages: [{ role: "user", content: opts.content }],
+      });
+    } catch (err) {
+      const e = err as { status?: number; message?: string; error?: unknown };
+      console.error("Claude API error", { status: e.status, model: opts.model, maxTokens: opts.maxTokens, message: e.message, error: e.error });
+      const { status, text } = describeAiError(e.status, e.message ?? "");
+      throw new UserError(text, status);
+    }
+    if (message.stop_reason === "max_tokens") {
+      console.error("Claude output truncated", { model: opts.model, maxTokens: opts.maxTokens, usage: message.usage });
+      throw new UserError("התשובה מה-AI נקטעה באמצע. נסו שוב. קוד: AI-LENGTH", 502);
+    }
+    const block = message.content.find((b) => b.type === "tool_use" && b.name === opts.tool.name);
+    if (!block) {
+      console.error("Claude answered without the tool", { model: opts.model, attempt, stop: message.stop_reason });
+      continue;
+    }
+    const parsed = opts.schema.safeParse("input" in block ? block.input : null);
+    if (!parsed.success) {
+      console.error("Unexpected AI output", parsed.error);
+      throw new UserError("התשובה מה-AI לא הייתה תקינה. נסו שוב. קוד: AI-SHAPE", 502);
+    }
+    return parsed.data;
   }
-  if (message.stop_reason === "max_tokens") {
-    console.error("Claude output truncated", { model: opts.model, maxTokens: opts.maxTokens, usage: message.usage });
-    throw new UserError("התשובה מה-AI נקטעה באמצע. נסו שוב. קוד: AI-LENGTH", 502);
-  }
-  const block = message.content.find((b) => b.type === "tool_use");
-  const parsed = opts.schema.safeParse(block && "input" in block ? block.input : null);
-  if (!parsed.success) {
-    console.error("Unexpected AI output", parsed.error);
-    throw new UserError("התשובה מה-AI לא הייתה תקינה. נסו שוב.", 502);
-  }
-  return parsed.data;
+  throw new UserError("ה-AI לא החזיר תשובה במבנה הנכון. נסו שוב. קוד: AI-NOTOOL", 502);
 }
 
 /* ---------- free scan ---------- */
