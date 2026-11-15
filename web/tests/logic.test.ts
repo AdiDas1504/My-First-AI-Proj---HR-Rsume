@@ -202,3 +202,16 @@ describe("resume builder", () => {
     expect(text).toContain("Excel");
   });
 });
+
+import { describeAiError } from "../src/lib/ai-errors";
+
+describe("AI error messages", () => {
+  it("names the cause with a code the owner can act on", () => {
+    expect(describeAiError(401, "invalid x-api-key").text).toContain("AI-401");
+    expect(describeAiError(404, "model: not found").text).toContain("AI-404");
+    expect(describeAiError(429, "rate_limit_error").text).toContain("AI-429");
+    expect(describeAiError(400, "Your credit balance is too low").text).toContain("AI-CREDIT");
+    expect(describeAiError(400, "You have reached your specified workspace API usage limits").text).toContain("AI-SPEND");
+    expect(describeAiError(undefined, "Request timed out.").text).toContain("AI-TIMEOUT");
+  });
+});

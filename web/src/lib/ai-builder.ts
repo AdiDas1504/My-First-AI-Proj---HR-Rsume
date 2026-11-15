@@ -196,7 +196,7 @@ export async function runBuild(
   const lang = answers.target.language === "en" ? "English" : "Hebrew";
   const out = await callTool({
     model: config.modelTailor,
-    maxTokens: 10000,
+    maxTokens: 7000,
     system: `${BUILDER_RULES}
 
 Task: write a complete, professional, ready-to-send resume in ${lang} from the person's answers${sourceResumeText ? " and their original resume" : ""}, aimed at their target role.

@@ -6,6 +6,7 @@ import { UserError } from "./errors";
 import type { JobInput } from "./extract";
 import { computeScore, potentialScore, rankGaps } from "./scoring";
 import { newNumbers } from "./honesty";
+import { describeAiError } from "./ai-errors";
 import type { AddOnlyIfTrue, Analysis, ScanResult, TailoredResume } from "./types";
 import { demoCoverLetter, demoScan, demoTailor } from "./ai-demo";
 
@@ -78,8 +79,14 @@ export async function callTool<T>(opts: {
       messages: [{ role: "user", content: opts.content }],
     });
   } catch (err) {
-    console.error("Claude API error", err);
-    throw new UserError("שירות ה-AI עמוס כרגע. נסו שוב בעוד דקה.", 503);
+    const e = err as { status?: number; message?: string; error?: unknown };
+    console.error("Claude API error", { status: e.status, model: opts.model, maxTokens: opts.maxTokens, message: e.message, error: e.error });
+    const { status, text } = describeAiError(e.status, e.message ?? "");
+    throw new UserError(text, status);
+  }
+  if (message.stop_reason === "max_tokens") {
+    console.error("Claude output truncated", { model: opts.model, maxTokens: opts.maxTokens, usage: message.usage });
+    throw new UserError("התשובה מה-AI נקטעה באמצע. נסו שוב. קוד: AI-LENGTH", 502);
   }
   const block = message.content.find((b) => b.type === "tool_use");
   const parsed = opts.schema.safeParse(block && "input" in block ? block.input : null);
@@ -310,7 +317,7 @@ export async function runTailor(
 
   const out = await callTool({
     model: config.modelTailor,
-    maxTokens: 12000,
+    maxTokens: 8000,
     system: `${HONESTY_RULES}
 
 Task: produce a complete, ready-to-send resume tailored to the job posting, plus a fit analysis.
