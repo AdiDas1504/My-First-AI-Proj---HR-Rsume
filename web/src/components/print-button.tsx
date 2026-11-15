@@ -2,8 +2,8 @@
 
 export function PrintButton() {
   return (
-    <button type="button" className="btn btn-primary" onClick={() => window.print()}>
-      שמירה כ-PDF
+    <button type="button" className="btn btn-secondary" onClick={() => window.print()}>
+      הדפסה
     </button>
   );
 }
