@@ -1,0 +1,270 @@
+@import "tailwindcss";
+
+@theme {
+  --color-paper: #f6ede5;
+  --color-paper-2: #fbf6f1;
+  --color-card: #fffdfa;
+  --color-ink: #18211c;
+  --color-muted: #545c56;
+  --color-line: #e4d7cb;
+  --color-forest: #1f4d3a;
+  --color-forest-600: #2a6650;
+  --color-forest-800: #143426;
+  --color-mint: #e3eee6;
+  --color-amber: #e9a23b;
+  --color-amber-soft: #fbe7c6;
+  --color-amber-ink: #7d4b00;
+  --color-danger: #a3362a;
+  --color-danger-soft: #f8e1dc;
+
+  --font-sans: "Heebo Variable", "Heebo", "Arial Hebrew", system-ui, sans-serif;
+  --font-display: "Frank Ruhl Libre", "David Libre", Georgia, serif;
+
+  --shadow-soft: 0 1px 2px rgb(24 33 28 / 0.04), 0 10px 30px -14px rgb(24 33 28 / 0.18);
+  --shadow-lift: 0 2px 4px rgb(24 33 28 / 0.05), 0 22px 48px -20px rgb(24 33 28 / 0.28);
+
+  --animate-rise: rise 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(14px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+}
+
+@layer base {
+  html {
+    background: var(--color-paper);
+    color: var(--color-ink);
+    -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
+  }
+  body {
+    font-family: var(--font-sans);
+    font-feature-settings: "kern";
+    line-height: 1.65;
+    text-rendering: optimizeLegibility;
+  }
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    letter-spacing: -0.01em;
+    line-height: 1.15;
+    text-wrap: balance;
+  }
+  p {
+    text-wrap: pretty;
+  }
+  :focus-visible {
+    outline: 3px solid var(--color-amber-ink);
+    outline-offset: 3px;
+    border-radius: 6px;
+  }
+  ::selection {
+    background: var(--color-amber-soft);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer components {
+  .container-page {
+    width: 100%;
+    max-width: 72rem;
+    margin-inline: auto;
+    padding-inline: 1.25rem;
+  }
+  @media (min-width: 768px) {
+    .container-page {
+      padding-inline: 2rem;
+    }
+  }
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--color-amber-ink);
+  }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-height: 2.875rem;
+    padding: 0.625rem 1.375rem;
+    border-radius: 999px;
+    font-weight: 600;
+    font-size: 1rem;
+    line-height: 1.2;
+    transition: background-color 0.2s, color 0.2s, box-shadow 0.2s, transform 0.2s;
+    cursor: pointer;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .btn:disabled,
+  .btn[aria-disabled="true"] {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+  .btn-primary {
+    background: var(--color-forest);
+    color: #fff;
+    box-shadow: 0 6px 18px -8px rgb(31 77 58 / 0.6);
+  }
+  .btn-primary:hover:not(:disabled) {
+    background: var(--color-forest-800);
+    transform: translateY(-1px);
+  }
+  .btn-secondary {
+    background: var(--color-card);
+    color: var(--color-ink);
+    box-shadow: inset 0 0 0 1.5px var(--color-line);
+  }
+  .btn-secondary:hover:not(:disabled) {
+    box-shadow: inset 0 0 0 1.5px var(--color-forest);
+  }
+  .btn-quiet {
+    color: var(--color-forest);
+    padding-inline: 0.75rem;
+  }
+  .btn-quiet:hover {
+    background: var(--color-mint);
+  }
+  .btn-danger {
+    background: var(--color-card);
+    color: var(--color-danger);
+    box-shadow: inset 0 0 0 1.5px currentColor;
+  }
+  .card {
+    background: var(--color-card);
+    border: 1px solid var(--color-line);
+    border-radius: 1.25rem;
+    box-shadow: var(--shadow-soft);
+  }
+  .label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 0.375rem;
+  }
+  .hint {
+    font-size: 0.875rem;
+    color: var(--color-muted);
+  }
+  .input {
+    width: 100%;
+    min-height: 2.875rem;
+    border-radius: 0.875rem;
+    border: 1.5px solid var(--color-line);
+    background: #fff;
+    padding: 0.625rem 0.875rem;
+    font-size: 1rem;
+    color: var(--color-ink);
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .input:hover {
+    border-color: #cdbcad;
+  }
+  .input:focus {
+    outline: none;
+    border-color: var(--color-forest);
+    box-shadow: 0 0 0 4px rgb(31 77 58 / 0.14);
+  }
+  .input[aria-invalid="true"] {
+    border-color: var(--color-danger);
+  }
+  textarea.input {
+    min-height: 9rem;
+    resize: vertical;
+    line-height: 1.6;
+  }
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    border-radius: 999px;
+    padding: 0.2rem 0.7rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+  }
+  .link {
+    color: var(--color-forest);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    text-decoration-thickness: 1px;
+  }
+  .link:hover {
+    text-decoration-thickness: 2px;
+  }
+}
+
+/* ---------- accessibility toolbar preferences ---------- */
+html.a11y-text-lg {
+  font-size: 112.5%;
+}
+html.a11y-text-xl {
+  font-size: 125%;
+}
+html.a11y-links a {
+  text-decoration: underline !important;
+  text-underline-offset: 3px;
+}
+html.a11y-readable body,
+html.a11y-readable h1,
+html.a11y-readable h2,
+html.a11y-readable h3 {
+  font-family: Arial, Helvetica, sans-serif !important;
+  letter-spacing: 0.01em;
+}
+html.a11y-contrast {
+  --color-paper: #ffffff;
+  --color-paper-2: #ffffff;
+  --color-card: #ffffff;
+  --color-ink: #000000;
+  --color-muted: #1a1a1a;
+  --color-line: #000000;
+  --color-forest: #00331f;
+  --color-forest-800: #000000;
+  --color-mint: #e6f2ea;
+  --color-amber-ink: #4d2e00;
+}
+html.a11y-contrast img.decorative {
+  filter: grayscale(1) contrast(1.2);
+}
+html.a11y-no-motion *,
+html.a11y-no-motion *::before,
+html.a11y-no-motion *::after {
+  animation: none !important;
+  transition: none !important;
+  scroll-behavior: auto !important;
+}
+
+/* ---------- print (resume PDF via the browser) ---------- */
+@media print {
+  @page {
+    size: A4;
+    margin: 14mm 14mm;
+  }
+  html,
+  body {
+    background: #fff !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+}

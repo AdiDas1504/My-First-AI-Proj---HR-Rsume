@@ -32,6 +32,31 @@ Future work not implemented yet.
 
 ---
 
+## [V1.0-web] — Paid Website (web/)
+
+### Added
+
+- New `web/` Next.js app: Hebrew RTL landing page, pricing, FAQ, legal pages and accessibility statement, with visuals generated in Higgsfield.
+- Phone login with SMS one-time codes, rate-limited.
+- Free fit check (score + top 3 gaps), limited to one per phone and one per device, and 3 per network per day.
+- Plans: 19.90 ₪ 7-day trial (once per phone), 49.90 ₪ monthly, 119 ₪ quarterly; fair-use quotas; one-click cancel.
+- Claude tailoring with forced structured output; match score computed from the requirement list.
+- Deterministic honesty check: numbers, employers, titles, institutions, skills and certifications must trace to the original resume; it re-runs after every edit.
+- Resume editor, cover letter, ATS-friendly Word export with proper RTL, and PDF via print.
+- Accessibility toolbar, keyboard support, screen-reader status messages.
+- Demo mode for local runs; production guard that blocks demo login codes and demo payments.
+- Unit tests for pricing, quotas, phone parsing and the honesty check.
+- Optional `PREVIEW_PASSWORD` site-wide password for private preview deployments.
+- AI review warning on every tailored draft in the web editor (per the project AI safety rules). It is shown on screen, not inside the exported file the candidate sends.
+
+### Planned
+
+- Real Israeli payment processor (needs a registered business).
+- Israeli SMS gateway.
+- Renewal reminders by SMS or email.
+
+---
+
 ## [Unreleased]
 ### Added
 
