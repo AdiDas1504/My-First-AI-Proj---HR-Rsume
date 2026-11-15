@@ -20,7 +20,8 @@ export const config = {
   modelTailor: process.env.CLAUDE_MODEL_TAILOR || "claude-sonnet-5-5",
   modelScan: process.env.CLAUDE_MODEL_SCAN || "claude-haiku-5-5",
   supabaseUrl: process.env.SUPABASE_URL || undefined,
-  supabaseServiceKey: process.env.SUPABASE_SERVICE_ROLE_KEY || undefined,
+  // New Supabase secret key (sb_secret_...); the legacy service_role key is a fallback.
+  supabaseServiceKey: process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || undefined,
   smsProvider: (process.env.SMS_PROVIDER || "console") as "console" | "twilio",
   twilio: {
     accountSid: process.env.TWILIO_ACCOUNT_SID,

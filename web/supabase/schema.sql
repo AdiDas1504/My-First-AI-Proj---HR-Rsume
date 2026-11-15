@@ -20,9 +20,12 @@ create table if not exists otp_challenges (
 );
 
 create or replace function increment_otp_attempts(p_phone text) returns void
-language sql security definer as $$
+language sql security definer set search_path = public as $$
   update otp_challenges set attempts = attempts + 1 where phone = p_phone;
 $$;
+-- Only the server (service_role / secret key) may call it, never the public API.
+revoke execute on function increment_otp_attempts(text) from public, anon, authenticated;
+grant execute on function increment_otp_attempts(text) to service_role;
 
 create table if not exists rate_events (
   id bigint generated always as identity primary key,
@@ -97,6 +100,12 @@ alter table free_scans enable row level security;
 alter table usage_events enable row level security;
 alter table documents enable row level security;
 alter table payments enable row level security;
+
+-- The server key works through the service_role Postgres role. Grant it
+-- explicitly, in case the project doesn't expose new tables automatically.
+grant usage on schema public to service_role;
+grant all on all tables in schema public to service_role;
+grant all on all sequences in schema public to service_role;
 
 -- Housekeeping: delete tailored documents older than 180 days (privacy policy).
 -- Schedule with pg_cron if enabled:

@@ -40,7 +40,7 @@ npm run build
 ## Going live: checklist
 
 1. **Claude API key:** create one at console.anthropic.com and set `ANTHROPIC_API_KEY`.
-2. **Supabase:** create a project, run `supabase/schema.sql` in the SQL editor, then set `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`.
+2. **Supabase:** create a project, run `supabase/schema.sql` in the SQL editor, then set `SUPABASE_URL` and `SUPABASE_SECRET_KEY` (the `sb_secret_...` key; the legacy `SUPABASE_SERVICE_ROLE_KEY` also works until Supabase retires it).
 3. **SMS:** Twilio works today (`SMS_PROVIDER=twilio`). An Israeli SMS gateway can be added in `src/lib/sms.ts`.
 4. **Payments:** needs a registered business. Pick an Israeli processor that supports recurring charges (standing orders) and webhooks, then implement the three spots marked `PROVIDER` in `src/lib/billing.ts` plus a webhook route.
 5. **Hosting:** Vercel works out of the box (set the env vars; tailoring needs up to ~3 minutes per request, so use a plan that allows long functions). Set `SESSION_SECRET` and `APP_URL`.
