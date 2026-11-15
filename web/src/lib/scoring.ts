@@ -16,6 +16,19 @@ export function computeScore(requirements: Pick<Requirement, "importance" | "sta
   return Math.round((got / total) * 100);
 }
 
+/**
+ * Honest upside: the score if every gap that is only a wording problem
+ * (real experience, under-stated) were presented properly. Truly missing
+ * requirements stay missing.
+ */
+export function potentialScore(
+  requirements: (Pick<Requirement, "importance" | "status"> & { gapType?: string })[],
+): number {
+  return computeScore(
+    requirements.map((r) => (r.gapType === "phrasing" ? { ...r, status: "met" as const } : r)),
+  );
+}
+
 /** Gaps ordered by what hurts most: missing must-haves first. */
 export function rankGaps<T extends Pick<Requirement, "importance" | "status">>(requirements: T[]): T[] {
   const rank = (r: T) => (r.importance === "must" ? 0 : 2) + (r.status === "missing" ? 0 : 1);

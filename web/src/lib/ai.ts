@@ -4,13 +4,14 @@ import { z } from "zod";
 import { config, demo } from "./config";
 import { UserError } from "./errors";
 import type { JobInput } from "./extract";
-import { computeScore, rankGaps } from "./scoring";
+import { computeScore, potentialScore, rankGaps } from "./scoring";
+import { newNumbers } from "./honesty";
 import type { AddOnlyIfTrue, Analysis, ScanResult, TailoredResume } from "./types";
 import { demoCoverLetter, demoScan, demoTailor } from "./ai-demo";
 
 /* ---------- shared rules (ported from the original Python project) ---------- */
 
-const HONESTY_RULES = `
+export const HONESTY_RULES = `
 You help a job candidate present their REAL background for a specific job posting.
 
 Absolute rules:
@@ -58,7 +59,7 @@ function jobContent(job: JobInput): Anthropic.ContentBlockParam[] {
   return [{ type: "text", text: `<job_posting>\n${job.text}\n</job_posting>` }];
 }
 
-async function callTool<T>(opts: {
+export async function callTool<T>(opts: {
   model: string;
   system: string;
   content: Anthropic.ContentBlockParam[];
@@ -95,15 +96,38 @@ const scanSchema = z.object({
   jobTitle: z.string(),
   company: z.string().default(""),
   verdict: z.string(),
-  requirements: z.array(requirementSchema.extend({ tip: z.string().default("") })).min(1),
+  strengths: z.array(z.string()).default([]),
+  requirements: z
+    .array(
+      requirementSchema.extend({
+        tip: z.string().default(""),
+        gapType: z.enum(["phrasing", "missing", "none"]).default("none"),
+      }),
+    )
+    .min(1),
+  sampleRewrite: z.object({ before: z.string(), after: z.string() }).nullable().default(null),
 });
+
+export const USER_VOICE = `
+Voice for every user-facing text: Hebrew, speaking directly to the candidate in second person ("יש לך", "הניסיון שלך"), never "המועמד". Warm, confident, specific and short, like a sharp career coach who is on their side. Lead with what already works, then frame gaps as concrete opportunities. Stay honest: never promise interviews or results, never imply a missing skill can be added unless it is true.
+`.trim();
 
 export async function runScan(resumeText: string, job: JobInput): Promise<ScanResult> {
   if (demo.ai) return demoScan(resumeText, job);
   const out = await callTool({
     model: config.modelScan,
-    maxTokens: 2500,
-    system: `${HONESTY_RULES}\n\nTask: a quick fit check. List the job's 6-12 most important requirements and assess each against the resume. Write all user-facing text in Hebrew.`,
+    maxTokens: 3000,
+    system: `${HONESTY_RULES}
+
+${USER_VOICE}
+
+Task: a quick fit check that shows the candidate what tailoring would do for them.
+- List the job's 6-12 most important requirements and assess each against the resume.
+- For every requirement that is not "met", set gapType:
+  "phrasing" = the resume contains real, related experience that is under-stated, buried or worded differently, so better wording alone would show it;
+  "missing" = the resume has no real evidence for it.
+  Use "none" for met requirements. Be strict: if in doubt, it is "missing".
+- sampleRewrite: pick ONE real line from the resume that matters for this job and rewrite it in the job's language and terminology. "before" must be copied exactly from the resume; "after" may only use facts found in "before" (no new numbers, tools, scope or results). Return null if no line fits.`,
     content: [{ type: "text", text: `<resume>\n${resumeText}\n</resume>` }, ...jobContent(job)],
     tool: {
       name: "report_fit_check",
@@ -113,32 +137,69 @@ export async function runScan(resumeText: string, job: JobInput): Promise<ScanRe
         properties: {
           jobTitle: { type: "string" },
           company: { type: "string", description: "Empty string if unknown" },
-          verdict: { type: "string", description: "One or two honest sentences in Hebrew about the overall fit" },
+          verdict: {
+            type: "string",
+            description: "Hebrew, second person, max 2 short sentences: honest overall fit plus the biggest opportunity",
+          },
+          strengths: {
+            type: "array",
+            items: { type: "string" },
+            description: "Hebrew, second person, 2-3 short points that already make the candidate relevant, each grounded in the resume",
+          },
           requirements: {
             type: "array",
             items: {
               ...requirementJson,
               properties: {
                 ...requirementJson.properties,
-                tip: { type: "string", description: "For non-met: one practical Hebrew sentence on how to close or present the gap honestly" },
+                tip: { type: "string", description: "For non-met: one short, practical Hebrew sentence in second person on how to present or close the gap honestly" },
+                gapType: { type: "string", enum: ["phrasing", "missing", "none"] },
               },
-              required: [...requirementJson.required, "tip"],
+              required: [...requirementJson.required, "tip", "gapType"],
             },
           },
+          sampleRewrite: {
+            anyOf: [
+              {
+                type: "object",
+                properties: { before: { type: "string" }, after: { type: "string" } },
+                required: ["before", "after"],
+              },
+              { type: "null" },
+            ],
+          },
         },
-        required: ["jobTitle", "company", "verdict", "requirements"],
+        required: ["jobTitle", "company", "verdict", "strengths", "requirements", "sampleRewrite"],
       },
     },
     schema: scanSchema,
   });
-  const gaps = rankGaps(out.requirements);
+
+  const reqs = out.requirements.map((r) => ({
+    ...r,
+    // A "met" requirement can't be a gap; a non-met one without a type is treated as missing.
+    gapType: r.status === "met" ? ("none" as const) : r.gapType === "none" ? ("missing" as const) : r.gapType,
+  }));
+  const gaps = rankGaps(reqs);
+  const sample = out.sampleRewrite;
+  const sampleIsHonest =
+    sample &&
+    sample.before.trim().length > 0 &&
+    resumeText.replace(/\s+/g, " ").includes(sample.before.replace(/\s+/g, " ").trim()) &&
+    newNumbers(sample.after, sample.before).length === 0;
+
   return {
     jobTitle: out.jobTitle,
     company: out.company,
-    score: computeScore(out.requirements),
+    score: computeScore(reqs),
+    potentialScore: potentialScore(reqs),
     verdict: out.verdict,
-    topGaps: gaps.slice(0, 3).map((g) => ({ requirement: g.text, tip: g.tip })),
+    strengths: out.strengths.slice(0, 3),
+    phrasingGapCount: gaps.filter((g) => g.gapType === "phrasing").length,
+    missingGapCount: gaps.filter((g) => g.gapType === "missing").length,
+    topGaps: gaps.slice(0, 3).map((g) => ({ requirement: g.text, tip: g.tip, gapType: g.gapType as "phrasing" | "missing" })),
     hiddenGapCount: Math.max(0, gaps.length - 3),
+    sampleRewrite: sampleIsHonest ? sample : null,
   };
 }
 
@@ -153,7 +214,7 @@ const experienceSchema = z.object({
   bullets: z.array(z.string()),
 });
 
-const resumeSchema = z.object({
+export const resumeSchema = z.object({
   language: z.enum(["he", "en"]),
   fullName: z.string(),
   headline: z.string().default(""),
@@ -193,6 +254,41 @@ const tailorSchema = z.object({
 const str = { type: "string" } as const;
 const strArr = { type: "array", items: str } as const;
 
+export const resumeJsonSchema = {
+  type: "object",
+  properties: {
+    language: { type: "string", enum: ["he", "en"] },
+    fullName: str,
+    headline: { type: "string", description: "Professional headline, from the resume's real roles" },
+    contact: {
+      type: "object",
+      properties: { email: str, phone: str, location: str, links: strArr },
+      required: ["email", "phone", "location", "links"],
+    },
+    summary: str,
+    experience: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: { title: str, organization: str, location: str, start: str, end: str, bullets: strArr },
+        required: ["title", "organization", "location", "start", "end", "bullets"],
+      },
+    },
+    education: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: { degree: str, institution: str, start: str, end: str, details: str },
+        required: ["degree", "institution", "start", "end", "details"],
+      },
+    },
+    skills: strArr,
+    languages: strArr,
+    certifications: strArr,
+  },
+  required: ["language", "fullName", "headline", "contact", "summary", "experience", "education", "skills", "languages", "certifications"],
+};
+
 export type TailorOutput = {
   analysis: Analysis;
   resume: TailoredResume;
@@ -223,7 +319,7 @@ Task: produce a complete, ready-to-send resume tailored to the job posting, plus
 - Keep every employer, title, date and number exactly as in the resume. Never add metrics.
 - Keep it concise: up to 6 bullets per role, most recent roles first, a 2-4 sentence summary.
 - Israeli conventions are fine (e.g. military service as an experience entry when it appears in the resume).
-- The analysis summary, strengths, change log and "add only if true" items are written in Hebrew for the user.
+- The analysis summary, strengths, change log and "add only if true" items are written in Hebrew for the user. ${USER_VOICE}
 - List the job's 6-15 most important requirements.`,
     content: [{ type: "text", text: `<resume>\n${resumeText}\n</resume>` }, ...jobContent(job)],
     tool: {
@@ -237,40 +333,7 @@ Task: produce a complete, ready-to-send resume tailored to the job posting, plus
           summary: { type: "string", description: "Hebrew, 2-3 sentences: honest overall fit" },
           strengths: { ...strArr, description: "Hebrew, 3-5 strongest points of fit, each grounded in the resume" },
           requirements: { type: "array", items: requirementJson },
-          resume: {
-            type: "object",
-            properties: {
-              language: { type: "string", enum: ["he", "en"] },
-              fullName: str,
-              headline: { type: "string", description: "Professional headline, from the resume's real roles" },
-              contact: {
-                type: "object",
-                properties: { email: str, phone: str, location: str, links: strArr },
-                required: ["email", "phone", "location", "links"],
-              },
-              summary: str,
-              experience: {
-                type: "array",
-                items: {
-                  type: "object",
-                  properties: { title: str, organization: str, location: str, start: str, end: str, bullets: strArr },
-                  required: ["title", "organization", "location", "start", "end", "bullets"],
-                },
-              },
-              education: {
-                type: "array",
-                items: {
-                  type: "object",
-                  properties: { degree: str, institution: str, start: str, end: str, details: str },
-                  required: ["degree", "institution", "start", "end", "details"],
-                },
-              },
-              skills: strArr,
-              languages: strArr,
-              certifications: strArr,
-            },
-            required: ["language", "fullName", "headline", "contact", "summary", "experience", "education", "skills", "languages", "certifications"],
-          },
+          resume: resumeJsonSchema,
           addOnlyIfTrue: {
             type: "array",
             items: {

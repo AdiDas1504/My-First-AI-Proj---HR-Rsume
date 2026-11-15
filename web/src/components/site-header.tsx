@@ -5,7 +5,7 @@ import { MobileNav } from "./mobile-nav";
 
 const NAV = [
   { href: "/#how", label: "איך זה עובד" },
-  { href: "/#features", label: "מה מקבלים" },
+  { href: "/builder", label: "בניית קורות חיים" },
   { href: "/pricing", label: "מחירים" },
   { href: "/#faq", label: "שאלות נפוצות" },
 ];

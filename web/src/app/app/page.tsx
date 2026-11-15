@@ -48,6 +48,9 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
               {user.trialUsedAt ? "חידוש מנוי" : "שבוע היכרות ב-19.90 ₪"}
             </Link>
           )}
+          <Link href="/builder" className="btn btn-secondary">
+            בניית קורות חיים
+          </Link>
           <Link href="/account" className="btn btn-secondary">
             החשבון והמנוי
           </Link>

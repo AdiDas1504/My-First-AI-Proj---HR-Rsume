@@ -8,7 +8,7 @@ export async function POST(req: Request) {
     const body = await req.json().catch(() => ({}));
     const result = await completeDemoCheckout(String(body.token ?? ""), user.id);
     if (!result.ok) throw new UserError(result.error, 400);
-    return Response.json({ ok: true, plan: result.plan });
+    return Response.json({ ok: true, next: result.next });
   } catch (err) {
     return errorResponse(err);
   }

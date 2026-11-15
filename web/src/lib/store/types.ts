@@ -1,4 +1,5 @@
 import type {
+  BuilderDraft,
   OtpChallenge,
   Payment,
   Subscription,
@@ -19,6 +20,11 @@ export type FreeScanRecord = {
 export type DocumentSummary = Pick<TailorDocument, "id" | "title" | "createdAt" | "updatedAt"> & {
   score: number;
   company: string;
+};
+
+export type DraftSummary = Pick<BuilderDraft, "id" | "mode" | "unlocked" | "createdAt" | "updatedAt"> & {
+  title: string;
+  generated: boolean;
 };
 
 /** Persistence contract. Implemented by a local JSON store (demo) and Supabase. */
@@ -52,6 +58,12 @@ export interface Store {
   listDocuments(userId: string): Promise<DocumentSummary[]>;
   updateDocument(doc: TailorDocument): Promise<void>;
   deleteDocument(userId: string, id: string): Promise<void>;
+
+  createDraft(draft: BuilderDraft): Promise<void>;
+  getDraft(userId: string, id: string): Promise<BuilderDraft | null>;
+  listDrafts(userId: string): Promise<DraftSummary[]>;
+  updateDraft(draft: BuilderDraft): Promise<void>;
+  deleteDraft(userId: string, id: string): Promise<void>;
 
   addPayment(payment: Payment): Promise<void>;
   listPayments(userId: string): Promise<Payment[]>;

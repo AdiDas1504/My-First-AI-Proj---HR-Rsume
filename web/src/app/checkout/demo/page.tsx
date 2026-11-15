@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { DemoPayForm } from "@/components/demo-pay-form";
 import { demo } from "@/lib/config";
-import { PLANS, formatPrice } from "@/lib/plans";
+import { BUILDER_PRODUCT, PLANS, formatPrice } from "@/lib/plans";
 import { getCurrentUser, verifyToken } from "@/lib/session";
 import type { PlanId } from "@/lib/plans";
 
@@ -13,9 +13,9 @@ export default async function DemoCheckoutPage({ searchParams }: { searchParams:
   const token = (await searchParams).t ?? "";
   const user = await getCurrentUser();
   if (!user) redirect("/login");
-  const payload = await verifyToken<{ plan?: PlanId; sub?: string }>(token);
-  if (!payload?.plan || payload.sub !== user.id) redirect("/pricing");
-  const plan = PLANS[payload.plan];
+  const payload = await verifyToken<{ plan?: PlanId; product?: "builder"; sub?: string }>(token);
+  if (!payload || payload.sub !== user.id || (!payload.plan && payload.product !== "builder")) redirect("/pricing");
+  const plan = payload.product === "builder" ? BUILDER_PRODUCT : PLANS[payload.plan!];
 
   return (
     <div className="container-page py-14">

@@ -2,8 +2,9 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from "node:fs";
 import path from "node:path";
-import type { Store, FreeScanRecord, DocumentSummary } from "./types";
+import type { Store, FreeScanRecord, DocumentSummary, DraftSummary } from "./types";
 import type {
+  BuilderDraft,
   OtpChallenge,
   Payment,
   Subscription,
@@ -20,6 +21,7 @@ type Data = {
   freeScans: FreeScanRecord[];
   usage: { userId: string; kind: UsageKind; createdAt: string }[];
   documents: TailorDocument[];
+  drafts: BuilderDraft[];
   payments: Payment[];
 };
 
@@ -31,6 +33,7 @@ const empty = (): Data => ({
   freeScans: [],
   usage: [],
   documents: [],
+  drafts: [],
   payments: [],
 });
 
@@ -76,6 +79,7 @@ export class MemoryStore implements Store {
     d.users = d.users.filter((u) => u.id !== userId);
     d.subscriptions = d.subscriptions.filter((s) => s.userId !== userId);
     d.documents = d.documents.filter((x) => x.userId !== userId);
+    d.drafts = d.drafts.filter((x) => x.userId !== userId);
     d.usage = d.usage.filter((x) => x.userId !== userId);
     // Free-scan and payment records are kept (anti-abuse and accounting duties),
     // but detached from the deleted account.
@@ -161,6 +165,36 @@ export class MemoryStore implements Store {
   }
   async deleteDocument(userId: string, id: string) {
     this.data.documents = this.data.documents.filter((d) => !(d.id === id && d.userId === userId));
+    this.save();
+  }
+
+  async createDraft(draft: BuilderDraft) {
+    this.data.drafts.push(draft);
+    this.save();
+  }
+  async getDraft(userId: string, id: string) {
+    return this.data.drafts.find((d) => d.id === id && d.userId === userId) ?? null;
+  }
+  async listDrafts(userId: string): Promise<DraftSummary[]> {
+    return this.data.drafts
+      .filter((d) => d.userId === userId)
+      .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+      .map((d) => ({
+        id: d.id,
+        mode: d.mode,
+        unlocked: d.unlocked,
+        createdAt: d.createdAt,
+        updatedAt: d.updatedAt,
+        title: d.answers.target.role || d.answers.personal.fullName || "קורות חיים",
+        generated: Boolean(d.resume),
+      }));
+  }
+  async updateDraft(draft: BuilderDraft) {
+    this.data.drafts = this.data.drafts.map((d) => (d.id === draft.id && d.userId === draft.userId ? draft : d));
+    this.save();
+  }
+  async deleteDraft(userId: string, id: string) {
+    this.data.drafts = this.data.drafts.filter((d) => !(d.id === id && d.userId === userId));
     this.save();
   }
 

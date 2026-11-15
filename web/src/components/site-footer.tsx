@@ -15,6 +15,7 @@ export function SiteFooter() {
           <h2 className="font-sans text-sm font-bold text-ink">המוצר</h2>
           <ul className="mt-3 space-y-2 text-muted">
             <li><Link className="hover:text-ink" href="/scan">בדיקת התאמה חינם</Link></li>
+            <li><Link className="hover:text-ink" href="/builder">בניית קורות חיים</Link></li>
             <li><Link className="hover:text-ink" href="/pricing">מחירים</Link></li>
             <li><Link className="hover:text-ink" href="/#faq">שאלות נפוצות</Link></li>
             <li><Link className="hover:text-ink" href="/login">כניסה</Link></li>

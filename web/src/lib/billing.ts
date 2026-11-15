@@ -2,7 +2,7 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 import { config, demo, demoShortcutsAllowed } from "./config";
 import { getStore } from "./store";
-import { PLANS, type PlanId } from "./plans";
+import { BUILDER_PRODUCT, PLANS, type PlanId } from "./plans";
 import { signToken, verifyToken } from "./session";
 import {
   canPurchase,
@@ -77,18 +77,65 @@ export async function createCheckout(user: User, plan: PlanId): Promise<{ ok: tr
   return { ok: true, url: `${config.appUrl}/checkout/demo?t=${encodeURIComponent(token)}` };
 }
 
-export async function completeDemoCheckout(token: string, userId: string): Promise<{ ok: true; plan: PlanId } | { ok: false; error: string }> {
-  if (!demo.payments || !demoShortcutsAllowed) return { ok: false, error: "Demo checkout is disabled." };
-  const payload = await verifyToken<{ sub?: string; plan?: PlanId; typ?: string }>(token);
-  if (!payload || payload.typ !== "checkout" || payload.sub !== userId || !payload.plan || !(payload.plan in PLANS)) {
-    return { ok: false, error: "קישור התשלום פג תוקף. נסו שוב מעמוד המחירים." };
+export async function createBuilderCheckout(
+  user: User,
+  draftId: string,
+): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
+  const draft = await getStore().getDraft(user.id, draftId);
+  if (!draft) return { ok: false, error: "הטיוטה לא נמצאה." };
+  if (draft.unlocked) return { ok: false, error: "קורות החיים האלה כבר שולמו." };
+  if (demo.payments && !demoShortcutsAllowed) {
+    return { ok: false, error: "התשלומים עוד לא נפתחו. נשמח לראות אותך בקרוב." };
   }
+  // PROVIDER: one-time charge on the processor's hosted page.
+  const token = await signToken({ sub: user.id, product: "builder", draftId, typ: "checkout" }, "30m");
+  return { ok: true, url: `${config.appUrl}/checkout/demo?t=${encodeURIComponent(token)}` };
+}
+
+type CheckoutToken = { sub?: string; plan?: PlanId; product?: "builder"; draftId?: string; typ?: string };
+
+export async function completeDemoCheckout(
+  token: string,
+  userId: string,
+): Promise<{ ok: true; next: string } | { ok: false; error: string }> {
+  if (!demo.payments || !demoShortcutsAllowed) return { ok: false, error: "Demo checkout is disabled." };
+  const payload = await verifyToken<CheckoutToken>(token);
+  if (!payload || payload.typ !== "checkout" || payload.sub !== userId) {
+    return { ok: false, error: "קישור התשלום פג תוקף. נסו שוב." };
+  }
+
+  if (payload.product === "builder" && payload.draftId) {
+    const store = getStore();
+    const draft = await store.getDraft(userId, payload.draftId);
+    if (!draft) return { ok: false, error: "הטיוטה לא נמצאה." };
+    if (!draft.unlocked) await unlockBuilderDraft(userId, draft.id, `demo-${randomUUID()}`);
+    return { ok: true, next: `/builder/${draft.id}?paid=1` };
+  }
+
+  if (!payload.plan || !(payload.plan in PLANS)) return { ok: false, error: "קישור התשלום לא תקין." };
   const user = await getStore().getUser(userId);
   const ent = await getEntitlement(userId);
   const allowed = canPurchase(payload.plan, { trialUsed: Boolean(user?.trialUsedAt), hasActive: ent.active });
   if (!allowed.ok) return { ok: false, error: allowed.reason };
   await activateSubscription(userId, payload.plan, `demo-${randomUUID()}`);
-  return { ok: true, plan: payload.plan };
+  return { ok: true, next: "/app?welcome=1" };
+}
+
+/** Called after a successful one-time builder payment (demo or provider webhook). */
+export async function unlockBuilderDraft(userId: string, draftId: string, providerRef: string) {
+  const store = getStore();
+  const draft = await store.getDraft(userId, draftId);
+  if (!draft) return;
+  await store.updateDraft({ ...draft, unlocked: true, updatedAt: new Date().toISOString() });
+  await store.addPayment({
+    id: randomUUID(),
+    userId,
+    plan: "builder",
+    amountAgorot: BUILDER_PRODUCT.priceAgorot,
+    status: "paid",
+    providerRef,
+    createdAt: new Date().toISOString(),
+  });
 }
 
 /** Called after a successful first payment (demo checkout or provider webhook). */

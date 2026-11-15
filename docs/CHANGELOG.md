@@ -46,6 +46,8 @@ Future work not implemented yet.
 - Accessibility toolbar, keyboard support, screen-reader status messages.
 - Demo mode for local runs; production guard that blocks demo login codes and demo payments.
 - Unit tests for pricing, quotas, phone parsing and the honesty check.
+- Resume builder (one-time product, 49 ₪): improve an existing resume or build from scratch through a 6-step interview with AI follow-up questions per role; free interview, payment unlocks generation; 3 single-column ATS-friendly templates (classic, modern, minimal); editing, Word and PDF export; honesty check against the person's own answers; one-click bridge to job tailoring. New `builder_drafts` table.
+- Free-scan results redesigned to convert, honestly: second-person coaching tone, strengths first, potential score after rewording (only gaps that are a wording problem count, never missing experience), one real resume line shown before/after (rejected automatically if it adds numbers or isn't copied from the resume), gaps tagged "fixable by wording" vs "missing", stronger call to action.
 - Optional `PREVIEW_PASSWORD` site-wide password for private preview deployments.
 - AI review warning on every tailored draft in the web editor (per the project AI safety rules). It is shown on screen, not inside the exported file the candidate sends.
 

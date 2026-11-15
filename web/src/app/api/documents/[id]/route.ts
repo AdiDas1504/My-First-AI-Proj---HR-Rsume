@@ -3,36 +3,12 @@ import { errorResponse, UserError } from "@/lib/errors";
 import { requireUser } from "@/lib/guards";
 import { checkHonesty } from "@/lib/honesty";
 import { getStore } from "@/lib/store";
+import { resumeEditSchema } from "@/lib/resume-schema";
 
 type Ctx = { params: Promise<{ id: string }> };
 
-const s = z.string().max(2000);
-const resumeSchema = z.object({
-  language: z.enum(["he", "en"]),
-  fullName: s,
-  headline: s,
-  contact: z.object({ email: s, phone: s, location: s, links: z.array(s).max(10) }),
-  summary: z.string().max(3000),
-  experience: z
-    .array(
-      z.object({
-        title: s,
-        organization: s,
-        location: s,
-        start: s,
-        end: s,
-        bullets: z.array(s).max(15),
-      }),
-    )
-    .max(20),
-  education: z.array(z.object({ degree: s, institution: s, start: s, end: s, details: s })).max(10),
-  skills: z.array(s).max(60),
-  languages: z.array(s).max(15),
-  certifications: z.array(s).max(30),
-});
-
 const patchSchema = z.object({
-  resume: resumeSchema.optional(),
+  resume: resumeEditSchema.optional(),
   coverLetter: z.string().max(6000).optional(),
 });
 
