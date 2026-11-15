@@ -81,6 +81,24 @@ create table if not exists documents (
 );
 create index if not exists documents_user_time on documents (user_id, created_at desc);
 
+-- Resume builder drafts (one-time product). Purchase unlocks one draft.
+create table if not exists builder_drafts (
+  id uuid primary key,
+  user_id uuid not null references users(id) on delete cascade,
+  mode text not null check (mode in ('improve','scratch')),
+  answers jsonb not null,
+  source_resume_text text not null default '',
+  diagnosis jsonb not null default '[]',
+  unlocked boolean not null default false,
+  resume jsonb,
+  notes jsonb not null default '[]',
+  honesty_flags jsonb not null default '[]',
+  template text not null default 'classic' check (template in ('classic','modern','minimal')),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index if not exists builder_drafts_user_time on builder_drafts (user_id, updated_at desc);
+
 -- Payments are kept for accounting even if the account is deleted.
 create table if not exists payments (
   id uuid primary key,
@@ -100,6 +118,7 @@ alter table free_scans enable row level security;
 alter table usage_events enable row level security;
 alter table documents enable row level security;
 alter table payments enable row level security;
+alter table builder_drafts enable row level security;
 
 -- The server key works through the service_role Postgres role. Grant it
 -- explicitly, in case the project doesn't expose new tables automatically.

@@ -119,9 +119,57 @@ export type TailorDocument = {
 export type Payment = {
   id: string;
   userId: string;
-  plan: PlanId;
+  /** A subscription plan, or "builder" for the one-time resume builder. */
+  plan: PlanId | "builder";
   amountAgorot: number;
   status: "paid" | "refunded" | "failed";
   providerRef: string;
   createdAt: string;
+};
+
+/* ---------------- resume builder ---------------- */
+
+export type ResumeTemplate = "classic" | "modern" | "minimal";
+
+export type FollowUp = { question: string; answer: string };
+
+export type BuilderRole = {
+  title: string;
+  organization: string;
+  location: string;
+  start: string;
+  end: string;
+  /** What the person did, in their own words. */
+  description: string;
+  followups: FollowUp[];
+};
+
+export type BuilderAnswers = {
+  target: { role: string; field: string; seniority: string; language: "he" | "en" };
+  personal: { fullName: string; phone: string; email: string; location: string; links: string };
+  roles: BuilderRole[];
+  education: EducationItem[];
+  skills: string;
+  languages: string;
+  certifications: string;
+  extra: string;
+};
+
+export type BuilderDraft = {
+  id: string;
+  userId: string;
+  mode: "improve" | "scratch";
+  answers: BuilderAnswers;
+  /** Original resume text (improve mode). Facts may come from here or from answers. */
+  sourceResumeText: string;
+  /** Hebrew notes on what is weak in the original resume (improve mode). */
+  diagnosis: string[];
+  unlocked: boolean;
+  resume: TailoredResume | null;
+  /** Hebrew notes from the AI about the generated resume. */
+  notes: string[];
+  honestyFlags: HonestyFlag[];
+  template: ResumeTemplate;
+  createdAt: string;
+  updatedAt: string;
 };

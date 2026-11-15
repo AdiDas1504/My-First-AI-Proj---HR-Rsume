@@ -6,6 +6,7 @@ import { requireActivePlan } from "@/lib/guards";
 import { checkHonesty } from "@/lib/honesty";
 import { takeRateLimit } from "@/lib/rate-limit";
 import { getStore } from "@/lib/store";
+import { resumeToText } from "@/lib/builder";
 
 export const maxDuration = 180;
 
@@ -22,7 +23,16 @@ export async function POST(req: Request) {
     const form = await req.formData();
     const lang = String(form.get("language") ?? "auto");
     const language = lang === "he" || lang === "en" ? lang : "auto";
-    const resumeText = await extractResumeText(form.get("resume") as File | null);
+    // Either an uploaded file, or a resume the user built in the builder.
+    const draftId = String(form.get("draftId") ?? "");
+    let resumeText: string;
+    if (draftId) {
+      const draft = await getStore().getDraft(user.id, draftId);
+      if (!draft?.resume || !draft.unlocked) throw new UserError("קורות החיים שבחרת לא נמצאו.", 404);
+      resumeText = resumeToText(draft.resume);
+    } else {
+      resumeText = await extractResumeText(form.get("resume") as File | null);
+    }
     const job = await extractJob({
       text: String(form.get("jobText") ?? ""),
       url: String(form.get("jobUrl") ?? ""),

@@ -167,6 +167,39 @@ export default function Home() {
         </div>
       </section>
 
+      {/* ---------- builder ---------- */}
+      <section aria-labelledby="builder-title" className="pt-20 md:pt-28">
+        <div className="container-page">
+          <div className="card grid items-center gap-8 overflow-hidden p-8 md:grid-cols-[1.2fr_1fr] md:p-12">
+            <div>
+              <p className="eyebrow">חדש: בניית קורות חיים</p>
+              <h2 id="builder-title" className="mt-2 text-3xl md:text-4xl">
+                אין לך קורות חיים טובים? נבנה אותם יחד.
+              </h2>
+              <p className="mt-4 max-w-xl text-lg text-muted">
+                עונים על שאלות פשוטות, במילים שלכם, ואנחנו שואלים שאלות המשך שמוציאות את ההישגים האמיתיים. בסוף מקבלים קורות חיים מקצועיים ב-3 עיצובים, בעברית או באנגלית. מתאים גם לשיפור קורות חיים קיימים.
+              </p>
+              <div className="mt-6 flex flex-wrap items-center gap-3">
+                <Link href="/builder" className="btn btn-primary text-lg">
+                  לבניית קורות חיים
+                </Link>
+                <span className="text-muted">49 ₪, תשלום חד-פעמי · הראיון חינם</span>
+              </div>
+            </div>
+            <ul className="space-y-3" aria-label="איך זה עובד">
+              {["מעלים קורות חיים קיימים, או מתחילים מאפס", "עונים על שאלות קצרות לכל תפקיד", "מקבלים קורות חיים מקצועיים, מוכנים לשליחה"].map((t, i) => (
+                <li key={t} className="flex items-center gap-4 rounded-2xl bg-paper-2 p-4">
+                  <span aria-hidden="true" className="flex size-9 shrink-0 items-center justify-center rounded-full bg-amber-soft font-display font-bold text-amber-ink">
+                    {i + 1}
+                  </span>
+                  <span className="font-semibold">{t}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </section>
+
       {/* ---------- honesty promise ---------- */}
       <section aria-labelledby="promise-title" className="py-20 md:py-28">
         <div className="container-page">

@@ -3,14 +3,24 @@
 import { useState } from "react";
 import type { PlanId } from "@/lib/plans";
 
-export function CheckoutButton({ plan, label }: { plan: PlanId; label: string }) {
+export function CheckoutButton({
+  plan,
+  product,
+  draftId,
+  label,
+}: {
+  plan?: PlanId;
+  product?: "builder";
+  draftId?: string;
+  label: string;
+}) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [agreed, setAgreed] = useState(false);
 
   async function go() {
     if (!agreed) {
-      setError("צריך לאשר את תנאי המנוי כדי להמשיך.");
+      setError(product ? "צריך לאשר את תנאי השימוש כדי להמשיך." : "צריך לאשר את תנאי המנוי כדי להמשיך.");
       return;
     }
     setBusy(true);
@@ -19,7 +29,7 @@ export function CheckoutButton({ plan, label }: { plan: PlanId; label: string })
       const res = await fetch("/api/billing/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan }),
+        body: JSON.stringify(product ? { product, draftId } : { plan }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error ?? "משהו השתבש. נסו שוב.");
@@ -37,9 +47,9 @@ export function CheckoutButton({ plan, label }: { plan: PlanId; label: string })
         <span>
           אני מאשר/ת את{" "}
           <a href="/legal/terms" target="_blank" className="link">
-            תנאי המנוי והביטול
+            {product ? "תנאי השימוש והביטול" : "תנאי המנוי והביטול"}
           </a>
-          , כולל חידוש אוטומטי עד לביטול.
+          {product ? "." : ", כולל חידוש אוטומטי עד לביטול."}
         </span>
       </label>
       {error && (

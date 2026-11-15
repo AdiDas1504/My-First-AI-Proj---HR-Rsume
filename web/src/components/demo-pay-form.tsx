@@ -23,7 +23,7 @@ export function DemoPayForm({ token }: { token: string }) {
       setBusy(false);
       return;
     }
-    router.replace("/app?welcome=1");
+    router.replace(typeof data.next === "string" && data.next.startsWith("/") ? data.next : "/app");
     router.refresh();
   }
 

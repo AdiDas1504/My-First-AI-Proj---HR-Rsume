@@ -16,8 +16,12 @@ The original Python/Streamlit tool in the repository root stays as the prototype
 | Honesty check (numbers, employers, skills vs. original) | `src/lib/honesty.ts` |
 | Word export (RTL, ATS-friendly) | `src/lib/docx-export.ts` |
 | PDF | browser print of `src/app/app/doc/[id]/print` |
+| Resume builder (one-time product) | `src/app/builder`, `src/components/builder-*.tsx`, `src/lib/ai-builder.ts`, `src/lib/builder.ts` |
+| Resume templates (classic, modern, minimal) | `src/components/resume-preview.tsx` |
 | Database | `src/lib/store/*`, schema in `supabase/schema.sql` |
 | Accessibility toolbar and statement | `src/components/accessibility-toolbar.tsx`, `src/app/accessibility` |
+
+Products: the subscription (below) and a one-time resume builder at 49 ₪ (`BUILDER_PRODUCT` in `src/lib/plans.ts`): the interview is free, and payment unlocks generating one resume with unlimited edits, templates and downloads.
 
 Pricing: 19.90 ₪ for a 7-day trial (once per phone number), then 49.90 ₪ a month, or 119 ₪ for 3 months. Fair use: 40 tailored resumes per 30 days, 10 during the trial.
 
@@ -40,7 +44,7 @@ npm run build
 ## Going live: checklist
 
 1. **Claude API key:** create one at console.anthropic.com and set `ANTHROPIC_API_KEY`.
-2. **Supabase:** create a project, run `supabase/schema.sql` in the SQL editor, then set `SUPABASE_URL` and `SUPABASE_SECRET_KEY` (the `sb_secret_...` key; the legacy `SUPABASE_SERVICE_ROLE_KEY` also works until Supabase retires it).
+2. **Supabase:** create a project, run `supabase/schema.sql` in the SQL editor (re-run it after updates; it is safe to run again), then set `SUPABASE_URL` and `SUPABASE_SECRET_KEY` (the `sb_secret_...` key; the legacy `SUPABASE_SERVICE_ROLE_KEY` also works until Supabase retires it).
 3. **SMS:** Twilio works today (`SMS_PROVIDER=twilio`). An Israeli SMS gateway can be added in `src/lib/sms.ts`.
 4. **Payments:** needs a registered business. Pick an Israeli processor that supports recurring charges (standing orders) and webhooks, then implement the three spots marked `PROVIDER` in `src/lib/billing.ts` plus a webhook route.
 5. **Hosting:** Vercel works out of the box (set the env vars; tailoring needs up to ~3 minutes per request, so use a plan that allows long functions). Set `SESSION_SECRET` and `APP_URL`.

@@ -157,3 +157,48 @@ describe("safeNext", () => {
     expect(safeNext("/\\evil.com")).toBe("/app");
   });
 });
+
+import { answersToText, assembleResume, emptyAnswers, readiness, resumeToText } from "../src/lib/builder";
+
+describe("resume builder", () => {
+  const filled = () => {
+    const a = emptyAnswers();
+    a.personal.fullName = "יוסי כהן";
+    a.personal.phone = "050-1234567";
+    a.target.role = "רכז לוגיסטיקה";
+    a.roles[0] = {
+      title: "אחראי משמרת",
+      organization: "מחסני השרון",
+      location: "",
+      start: "2022",
+      end: "",
+      description: "ניהלתי משמרת במחסן",
+      followups: [{ question: "כמה עובדים?", answer: "צוות של 7 עובדים" }],
+    };
+    a.skills = "Excel, מלגזה";
+    return a;
+  };
+
+  it("requires a name, a contact and one described role", () => {
+    const r = readiness(emptyAnswers());
+    expect(r.ok).toBe(false);
+    expect(r.missing).toHaveLength(3);
+    expect(readiness(filled()).ok).toBe(true);
+  });
+
+  it("uses follow-up answers as facts for the honesty check", () => {
+    const a = filled();
+    const source = answersToText(a);
+    const built = { ...assembleResume(a), summary: "אחראי משמרת עם צוות של 7 עובדים" };
+    expect(checkHonesty(built, source)).toEqual([]);
+    const inflated = { ...built, summary: "ניהלתי צוות של 20 עובדים" };
+    expect(checkHonesty(inflated, source).map((f) => f.value)).toContain("20");
+  });
+
+  it("renders a built resume to text for tailoring", () => {
+    const text = resumeToText(assembleResume(filled()));
+    expect(text).toContain("יוסי כהן");
+    expect(text).toContain("- צוות של 7 עובדים");
+    expect(text).toContain("Excel");
+  });
+});

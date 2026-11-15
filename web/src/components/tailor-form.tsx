@@ -5,7 +5,7 @@ import { useState } from "react";
 import { JobField, ResumeField } from "./upload-fields";
 import { ProgressNote } from "./progress-note";
 
-export function TailorForm() {
+export function TailorForm({ fromDraft }: { fromDraft?: { id: string; title: string } }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -27,7 +27,15 @@ export function TailorForm() {
 
   return (
     <form onSubmit={onSubmit} className="card mt-8 space-y-7 p-7 md:p-9" aria-busy={busy}>
-      <ResumeField />
+      {fromDraft ? (
+        <div className="rounded-2xl bg-mint px-5 py-4 text-forest">
+          <input type="hidden" name="draftId" value={fromDraft.id} />
+          <p className="font-semibold">משתמשים בקורות החיים שבנית: {fromDraft.title}</p>
+          <p className="text-sm">לא צריך להעלות קובץ.</p>
+        </div>
+      ) : (
+        <ResumeField />
+      )}
       <JobField />
       <fieldset>
         <legend className="label">שפת קורות החיים המותאמים</legend>

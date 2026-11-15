@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { AccountActions } from "@/components/account-actions";
 import { getEntitlement } from "@/lib/billing";
 import { maskPhone } from "@/lib/phone";
-import { PLANS, formatPrice } from "@/lib/plans";
+import { PLANS, formatPrice, productName } from "@/lib/plans";
 import { getCurrentUser } from "@/lib/session";
 import { getStore } from "@/lib/store";
 
@@ -76,7 +76,7 @@ export default async function AccountPage() {
               {payments.map((p) => (
                 <tr key={p.id}>
                   <td className="py-3">{dateFmt.format(new Date(p.createdAt))}</td>
-                  <td className="py-3">{PLANS[p.plan].name}</td>
+                  <td className="py-3">{productName(p.plan)}</td>
                   <td className="py-3">{formatPrice(p.amountAgorot)}</td>
                 </tr>
               ))}

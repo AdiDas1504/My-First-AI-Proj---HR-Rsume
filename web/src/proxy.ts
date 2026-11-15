@@ -42,7 +42,8 @@ export function proxy(request: NextRequest) {
   if (gate) return gate;
 
   const { pathname, search } = request.nextUrl;
-  const isPrivate = pathname.startsWith("/app") || pathname.startsWith("/account");
+  const isPrivate =
+    pathname.startsWith("/app") || pathname.startsWith("/account") || pathname.startsWith("/builder/");
 
   let response: NextResponse;
   if (isPrivate && !request.cookies.get(SESSION_COOKIE)) {

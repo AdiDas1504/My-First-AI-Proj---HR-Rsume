@@ -11,7 +11,7 @@ import { demoCoverLetter, demoScan, demoTailor } from "./ai-demo";
 
 /* ---------- shared rules (ported from the original Python project) ---------- */
 
-const HONESTY_RULES = `
+export const HONESTY_RULES = `
 You help a job candidate present their REAL background for a specific job posting.
 
 Absolute rules:
@@ -59,7 +59,7 @@ function jobContent(job: JobInput): Anthropic.ContentBlockParam[] {
   return [{ type: "text", text: `<job_posting>\n${job.text}\n</job_posting>` }];
 }
 
-async function callTool<T>(opts: {
+export async function callTool<T>(opts: {
   model: string;
   system: string;
   content: Anthropic.ContentBlockParam[];
@@ -108,7 +108,7 @@ const scanSchema = z.object({
   sampleRewrite: z.object({ before: z.string(), after: z.string() }).nullable().default(null),
 });
 
-const USER_VOICE = `
+export const USER_VOICE = `
 Voice for every user-facing text: Hebrew, speaking directly to the candidate in second person ("יש לך", "הניסיון שלך"), never "המועמד". Warm, confident, specific and short, like a sharp career coach who is on their side. Lead with what already works, then frame gaps as concrete opportunities. Stay honest: never promise interviews or results, never imply a missing skill can be added unless it is true.
 `.trim();
 
@@ -214,7 +214,7 @@ const experienceSchema = z.object({
   bullets: z.array(z.string()),
 });
 
-const resumeSchema = z.object({
+export const resumeSchema = z.object({
   language: z.enum(["he", "en"]),
   fullName: z.string(),
   headline: z.string().default(""),
@@ -253,6 +253,41 @@ const tailorSchema = z.object({
 
 const str = { type: "string" } as const;
 const strArr = { type: "array", items: str } as const;
+
+export const resumeJsonSchema = {
+  type: "object",
+  properties: {
+    language: { type: "string", enum: ["he", "en"] },
+    fullName: str,
+    headline: { type: "string", description: "Professional headline, from the resume's real roles" },
+    contact: {
+      type: "object",
+      properties: { email: str, phone: str, location: str, links: strArr },
+      required: ["email", "phone", "location", "links"],
+    },
+    summary: str,
+    experience: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: { title: str, organization: str, location: str, start: str, end: str, bullets: strArr },
+        required: ["title", "organization", "location", "start", "end", "bullets"],
+      },
+    },
+    education: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: { degree: str, institution: str, start: str, end: str, details: str },
+        required: ["degree", "institution", "start", "end", "details"],
+      },
+    },
+    skills: strArr,
+    languages: strArr,
+    certifications: strArr,
+  },
+  required: ["language", "fullName", "headline", "contact", "summary", "experience", "education", "skills", "languages", "certifications"],
+};
 
 export type TailorOutput = {
   analysis: Analysis;
@@ -298,40 +333,7 @@ Task: produce a complete, ready-to-send resume tailored to the job posting, plus
           summary: { type: "string", description: "Hebrew, 2-3 sentences: honest overall fit" },
           strengths: { ...strArr, description: "Hebrew, 3-5 strongest points of fit, each grounded in the resume" },
           requirements: { type: "array", items: requirementJson },
-          resume: {
-            type: "object",
-            properties: {
-              language: { type: "string", enum: ["he", "en"] },
-              fullName: str,
-              headline: { type: "string", description: "Professional headline, from the resume's real roles" },
-              contact: {
-                type: "object",
-                properties: { email: str, phone: str, location: str, links: strArr },
-                required: ["email", "phone", "location", "links"],
-              },
-              summary: str,
-              experience: {
-                type: "array",
-                items: {
-                  type: "object",
-                  properties: { title: str, organization: str, location: str, start: str, end: str, bullets: strArr },
-                  required: ["title", "organization", "location", "start", "end", "bullets"],
-                },
-              },
-              education: {
-                type: "array",
-                items: {
-                  type: "object",
-                  properties: { degree: str, institution: str, start: str, end: str, details: str },
-                  required: ["degree", "institution", "start", "end", "details"],
-                },
-              },
-              skills: strArr,
-              languages: strArr,
-              certifications: strArr,
-            },
-            required: ["language", "fullName", "headline", "contact", "summary", "experience", "education", "skills", "languages", "certifications"],
-          },
+          resume: resumeJsonSchema,
           addOnlyIfTrue: {
             type: "array",
             items: {

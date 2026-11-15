@@ -44,6 +44,18 @@ export const PLANS: Record<PlanId, Plan> = {
   },
 };
 
+/** One-time product: build or rebuild one professional resume. */
+export const BUILDER_PRODUCT = {
+  id: "builder" as const,
+  name: "בניית קורות חיים מקצועיים",
+  priceAgorot: 4900,
+  blurb: "תשלום חד-פעמי לקורות חיים אחד: יצירה, עריכה ללא הגבלה, 3 תבניות והורדה ל-Word ול-PDF.",
+};
+
+export function productName(plan: PlanId | "builder"): string {
+  return plan === "builder" ? BUILDER_PRODUCT.name : PLANS[plan].name;
+}
+
 export function formatPrice(agorot: number): string {
   const shekels = agorot / 100;
   return `${shekels.toLocaleString("he-IL", {

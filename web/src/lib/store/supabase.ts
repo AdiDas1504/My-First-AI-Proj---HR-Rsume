@@ -1,7 +1,8 @@
 import "server-only";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import type { Store, FreeScanRecord, DocumentSummary } from "./types";
+import type { Store, FreeScanRecord, DocumentSummary, DraftSummary } from "./types";
 import type {
+  BuilderDraft,
   OtpChallenge,
   Payment,
   Subscription,
@@ -55,6 +56,38 @@ const docToRow = (d: TailorDocument) => ({
   honesty_flags: d.honestyFlags,
   source_resume_text: d.sourceResumeText,
   cover_letter: d.coverLetter,
+  created_at: d.createdAt,
+  updated_at: d.updatedAt,
+});
+
+const draftFromRow = (r: any): BuilderDraft => ({
+  id: r.id,
+  userId: r.user_id,
+  mode: r.mode,
+  answers: r.answers,
+  sourceResumeText: r.source_resume_text ?? "",
+  diagnosis: r.diagnosis ?? [],
+  unlocked: r.unlocked,
+  resume: r.resume,
+  notes: r.notes ?? [],
+  honestyFlags: r.honesty_flags ?? [],
+  template: r.template,
+  createdAt: r.created_at,
+  updatedAt: r.updated_at,
+});
+
+const draftToRow = (d: BuilderDraft) => ({
+  id: d.id,
+  user_id: d.userId,
+  mode: d.mode,
+  answers: d.answers,
+  source_resume_text: d.sourceResumeText,
+  diagnosis: d.diagnosis,
+  unlocked: d.unlocked,
+  resume: d.resume,
+  notes: d.notes,
+  honesty_flags: d.honestyFlags,
+  template: d.template,
   created_at: d.createdAt,
   updated_at: d.updatedAt,
 });
@@ -226,6 +259,42 @@ export class SupabaseStore implements Store {
   }
   async deleteDocument(userId: string, id: string) {
     check(await this.db.from("documents").delete().eq("id", id).eq("user_id", userId));
+  }
+
+  async createDraft(draft: BuilderDraft) {
+    check(await this.db.from("builder_drafts").insert(draftToRow(draft)));
+  }
+  async getDraft(userId: string, id: string) {
+    const r = check(
+      await this.db.from("builder_drafts").select("*").eq("id", id).eq("user_id", userId).maybeSingle(),
+    );
+    return r ? draftFromRow(r) : null;
+  }
+  async listDrafts(userId: string): Promise<DraftSummary[]> {
+    const rows = check(
+      await this.db
+        .from("builder_drafts")
+        .select("id,mode,unlocked,created_at,updated_at,resume,answers->target->>role,answers->personal->>fullName")
+        .eq("user_id", userId)
+        .order("updated_at", { ascending: false }),
+    ) as any[];
+    return rows.map((r) => ({
+      id: r.id,
+      mode: r.mode,
+      unlocked: r.unlocked,
+      createdAt: r.created_at,
+      updatedAt: r.updated_at,
+      title: r.role || r.fullName || "קורות חיים",
+      generated: Boolean(r.resume),
+    }));
+  }
+  async updateDraft(draft: BuilderDraft) {
+    check(
+      await this.db.from("builder_drafts").update(draftToRow(draft)).eq("id", draft.id).eq("user_id", draft.userId),
+    );
+  }
+  async deleteDraft(userId: string, id: string) {
+    check(await this.db.from("builder_drafts").delete().eq("id", id).eq("user_id", userId));
   }
 
   async addPayment(p: Payment) {

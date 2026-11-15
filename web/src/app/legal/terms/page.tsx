@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { LegalPage } from "@/components/legal-page";
-import { PLANS, formatPrice } from "@/lib/plans";
+import { BUILDER_PRODUCT, PLANS, formatPrice } from "@/lib/plans";
 
 export const metadata: Metadata = { title: "תנאי שימוש וביטולים" };
 
@@ -24,6 +24,14 @@ export default function TermsPage() {
           <li>{PLANS.monthly.name}: {formatPrice(PLANS.monthly.priceAgorot)} לכל 30 יום, מתחדש אוטומטית עד לביטול.</li>
           <li>{PLANS.quarterly.name}: {formatPrice(PLANS.quarterly.priceAgorot)} לכל 90 יום, מתחדש אוטומטית עד לביטול.</li>
           <li>כל המחירים כוללים מע״מ. מכסת שימוש הוגן: עד {PLANS.monthly.tailorQuota} התאמות בכל 30 יום ({PLANS.trial.tailorQuota} בשבוע ההיכרות).</li>
+        </ul>
+      </section>
+      <section>
+        <h2>בניית קורות חיים (תשלום חד-פעמי)</h2>
+        <ul>
+          <li>{BUILDER_PRODUCT.name}: {formatPrice(BUILDER_PRODUCT.priceAgorot)}, תשלום חד-פעמי לקורות חיים אחד. אין חידוש אוטומטי.</li>
+          <li>הראיון והשאלות חינם. התשלום נדרש ליצירת קורות החיים, וכולל עריכה, החלפת תבנית והורדות ללא הגבלה עבור אותם קורות חיים.</li>
+          <li>קורות החיים נבנים רק מהמידע שמסרתם. האחריות לוודא שכל פרט נכון היא שלכם.</li>
         </ul>
       </section>
       <section>

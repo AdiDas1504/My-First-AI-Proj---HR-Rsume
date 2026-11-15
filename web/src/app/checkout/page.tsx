@@ -4,13 +4,20 @@ import { redirect } from "next/navigation";
 import { CheckoutButton } from "@/components/checkout-button";
 import { getEntitlement } from "@/lib/billing";
 import { canPurchase } from "@/lib/entitlement";
-import { PLANS, formatPrice, isPlanId } from "@/lib/plans";
+import { BUILDER_PRODUCT, PLANS, formatPrice, isPlanId } from "@/lib/plans";
+import { getStore } from "@/lib/store";
 import { getCurrentUser } from "@/lib/session";
 
 export const metadata: Metadata = { title: "הצטרפות" };
 
-export default async function CheckoutPage({ searchParams }: { searchParams: Promise<{ plan?: string }> }) {
-  const raw = (await searchParams).plan;
+export default async function CheckoutPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ plan?: string; product?: string; draft?: string }>;
+}) {
+  const sp = await searchParams;
+  if (sp.product === "builder" && sp.draft) return <BuilderCheckout draftId={sp.draft} />;
+  const raw = sp.plan;
   const planId = isPlanId(raw) ? raw : "trial";
   const user = await getCurrentUser();
   if (!user) redirect(`/login?next=${encodeURIComponent(`/checkout?plan=${planId}`)}`);
@@ -67,6 +74,42 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Pro
             </p>
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+async function BuilderCheckout({ draftId }: { draftId: string }) {
+  const user = await getCurrentUser();
+  if (!user) redirect(`/login?next=${encodeURIComponent(`/checkout?product=builder&draft=${draftId}`)}`);
+  const draft = await getStore().getDraft(user.id, draftId);
+  if (!draft) redirect("/builder");
+  if (draft.unlocked) redirect(`/builder/${draft.id}`);
+  return (
+    <div className="container-page py-14">
+      <div className="mx-auto max-w-xl">
+        <h1 className="text-4xl">{BUILDER_PRODUCT.name}</h1>
+        <div className="card mt-8 p-8">
+          <dl className="divide-y divide-line">
+            <div className="flex justify-between py-3">
+              <dt className="text-muted">מוצר</dt>
+              <dd className="font-semibold">קורות חיים אחד, נבנים מהתשובות שלך</dd>
+            </div>
+            <div className="flex justify-between py-3">
+              <dt className="text-muted">לתשלום</dt>
+              <dd className="font-display text-2xl font-bold text-forest">{formatPrice(BUILDER_PRODUCT.priceAgorot)}</dd>
+            </div>
+            <div className="flex justify-between py-3">
+              <dt className="text-muted">סוג תשלום</dt>
+              <dd>חד-פעמי, בלי מנוי ובלי חיובים נוספים</dd>
+            </div>
+          </dl>
+          <p className="mt-6 rounded-xl bg-paper-2 p-4 text-[0.95rem]">
+            כולל: יצירת קורות החיים, עריכה ללא הגבלה, 3 תבניות עיצוב, והורדה ל-Word ול-PDF בעברית או באנגלית. המחיר כולל מע״מ.
+          </p>
+          <CheckoutButton product="builder" draftId={draft.id} label={`לתשלום ${formatPrice(BUILDER_PRODUCT.priceAgorot)}`} />
+          <p className="mt-4 text-center text-sm text-muted">התשלום מתבצע בעמוד מאובטח של חברת הסליקה. פרטי הכרטיס לא נשמרים אצלנו.</p>
+        </div>
       </div>
     </div>
   );
