@@ -121,6 +121,10 @@ export function DocWorkspace({ doc, canGenerate }: { doc: ClientDoc; canGenerate
       </div>
       {dirty && <p className="mt-3 text-sm text-amber-ink">יש שינויים שלא נשמרו. שמרו כדי להוריד את הגרסה המעודכנת.</p>}
 
+      <p role="note" className="mt-5 rounded-2xl bg-amber-soft px-5 py-4 text-amber-ink">
+        <strong>זו טיוטה שנוצרה בעזרת AI.</strong> קראו כל שורה לפני השליחה, ודאו שכל פרט נכון ומדויק, ותקנו בעריכה מה שלא.
+      </p>
+
       {flags.length > 0 && (
         <section aria-labelledby="flags-title" className="mt-6 rounded-2xl border border-danger/30 bg-danger-soft p-5 md:p-6">
           <h2 id="flags-title" className="font-sans text-lg font-bold text-danger">
