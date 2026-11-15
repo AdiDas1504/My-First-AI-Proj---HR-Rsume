@@ -48,13 +48,22 @@ export type Analysis = {
   strengths: string[];
 };
 
+export type GapType = "phrasing" | "missing";
+
 export type ScanResult = {
   jobTitle: string;
   company: string;
   score: number;
+  /** Score if every gap that better wording can honestly close were closed. */
+  potentialScore: number;
   verdict: string;
-  topGaps: { requirement: string; tip: string }[];
+  strengths: string[];
+  phrasingGapCount: number;
+  missingGapCount: number;
+  topGaps: { requirement: string; tip: string; gapType: GapType }[];
   hiddenGapCount: number;
+  /** One real resume line, rewritten for the job with no new facts. */
+  sampleRewrite: { before: string; after: string } | null;
 };
 
 export type ExperienceItem = {

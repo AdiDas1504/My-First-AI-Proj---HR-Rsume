@@ -59,6 +59,12 @@ function numbersIn(text: string): string[] {
   return (text.match(/\d+(?:[.,]\d+)?/g) ?? []).map((n) => n.replace(",", "."));
 }
 
+/** Numbers in `text` that do not appear in `source` (used to vet rewritten lines). */
+export function newNumbers(text: string, source: string): string[] {
+  const known = new Set(numbersIn(source));
+  return numbersIn(text).filter((n) => !known.has(n));
+}
+
 export function checkHonesty(resume: TailoredResume, sourceText: string): HonestyFlag[] {
   const idx = makeSourceIndex(sourceText);
   const flags: HonestyFlag[] = [];

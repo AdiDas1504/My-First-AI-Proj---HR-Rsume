@@ -2,7 +2,7 @@ import "server-only";
 import { UserError } from "./errors";
 import type { JobInput } from "./extract";
 import { hebrewRatio } from "./honesty";
-import { computeScore, rankGaps } from "./scoring";
+import { computeScore, potentialScore, rankGaps } from "./scoring";
 import type { Analysis, Requirement, ScanResult, TailoredResume } from "./types";
 import type { TailorOutput } from "./ai";
 
@@ -60,19 +60,28 @@ function titleOf(job: string): string {
 
 export function demoScan(resumeText: string, job: JobInput): ScanResult {
   const text = jobText(job);
-  const reqs = extractRequirements(text, resumeText);
+  // Demo heuristic: partial keyword overlap is treated as a wording gap.
+  const reqs = extractRequirements(text, resumeText).map((r) => ({
+    ...r,
+    gapType: r.status === "met" ? "none" : r.status === "partial" ? "phrasing" : "missing",
+  }));
   const gaps = rankGaps(reqs);
-  const score = computeScore(reqs);
   return {
     jobTitle: titleOf(text),
     company: "",
-    score,
+    score: computeScore(reqs),
+    potentialScore: potentialScore(reqs),
     verdict: "מצב הדגמה: הציון מחושב לפי חפיפת מילים בלבד. עם חיבור ל-AI הניתוח מבין הקשר ומשמעות.",
+    strengths: reqs.filter((r) => r.status === "met").slice(0, 3).map((r) => `יש לך התאמה ל: ${r.text}`),
+    phrasingGapCount: gaps.filter((g) => g.gapType === "phrasing").length,
+    missingGapCount: gaps.filter((g) => g.gapType === "missing").length,
     topGaps: gaps.slice(0, 3).map((g) => ({
       requirement: g.text,
+      gapType: g.gapType as "phrasing" | "missing",
       tip: g.status === "partial" ? "יש לך ניסיון קרוב. כדאי לנסח אותו במפורש בשפה של המשרה." : "אם יש לך ניסיון כזה, הוסיפו אותו. אם לא, אל תוסיפו.",
     })),
     hiddenGapCount: Math.max(0, gaps.length - 3),
+    sampleRewrite: null,
   };
 }
 

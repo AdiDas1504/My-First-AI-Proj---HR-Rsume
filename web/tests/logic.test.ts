@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { normalizeIsraeliMobile, maskPhone } from "../src/lib/phone";
-import { computeScore, rankGaps } from "../src/lib/scoring";
-import { checkHonesty } from "../src/lib/honesty";
+import { computeScore, potentialScore, rankGaps } from "../src/lib/scoring";
+import { checkHonesty, newNumbers } from "../src/lib/honesty";
 import { canPurchase, computeEntitlement, periodFrom, usageWindowStart } from "../src/lib/entitlement";
 import { safeNext } from "../src/lib/safe-next";
 import type { Subscription, TailoredResume } from "../src/lib/types";
@@ -34,6 +34,15 @@ describe("scoring", () => {
   });
   it("is 0 with no requirements", () => {
     expect(computeScore([])).toBe(0);
+  });
+  it("potential score only lifts wording gaps, never missing ones", () => {
+    const reqs = [
+      { importance: "must" as const, status: "met" as const, gapType: "none" },
+      { importance: "must" as const, status: "partial" as const, gapType: "phrasing" },
+      { importance: "must" as const, status: "missing" as const, gapType: "missing" },
+    ];
+    expect(computeScore(reqs)).toBe(50);
+    expect(potentialScore(reqs)).toBe(67);
   });
   it("ranks missing must-haves first and drops met", () => {
     const ranked = rankGaps([
@@ -92,6 +101,10 @@ describe("honesty check", () => {
     const values = checkHonesty(fake, SOURCE).map((f) => f.value);
     expect(values).toEqual(expect.arrayContaining(["8", "40", "גוגל ישראל", "Kubernetes", "PMP"]));
     expect(values).not.toContain("SQL");
+  });
+  it("vets a rewritten line for invented numbers", () => {
+    expect(newNumbers("הובלתי צוות של 5 מפתחים", "ניהלתי 5 מפתחים")).toEqual([]);
+    expect(newNumbers("הובלתי צוות של 8 מפתחים ושיפרתי ב-30%", "ניהלתי 5 מפתחים")).toEqual(["8", "30"]);
   });
   it("tolerates Hebrew prefixes (ב/ה/ו/ל)", () => {
     const r = { ...base, experience: [{ ...base.experience[0], organization: "באקמה מערכות" }] };
