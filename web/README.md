@@ -50,4 +50,4 @@ npm run build
    - Replace the `@jobfit.co.il` addresses.
    - Check the brand name and domain are available.
 
-Production safety: if the site runs in production without a real SMS or payment provider, login and checkout refuse to work, so demo shortcuts can't leak. `DEMO_MODE=1` overrides this; use it only for a private preview.
+Production safety: if the site runs in production without a real SMS or payment provider, login and checkout refuse to work, so demo shortcuts can't leak. `DEMO_MODE=1` overrides this; use it only for a private preview, and always together with `PREVIEW_PASSWORD`, which puts the whole site behind a browser password prompt.

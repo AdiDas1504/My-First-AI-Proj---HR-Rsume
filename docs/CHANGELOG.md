@@ -46,6 +46,7 @@ Future work not implemented yet.
 - Accessibility toolbar, keyboard support, screen-reader status messages.
 - Demo mode for local runs; production guard that blocks demo login codes and demo payments.
 - Unit tests for pricing, quotas, phone parsing and the honesty check.
+- Optional `PREVIEW_PASSWORD` site-wide password for private preview deployments.
 - AI review warning on every tailored draft in the web editor (per the project AI safety rules). It is shown on screen, not inside the exported file the candidate sends.
 
 ### Planned
