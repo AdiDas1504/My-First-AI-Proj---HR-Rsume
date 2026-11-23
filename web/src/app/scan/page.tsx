@@ -1,3 +1,4 @@
+import { config } from "@/lib/config";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { LoginForm } from "@/components/login-form";
@@ -40,7 +41,7 @@ export default async function ScanPage() {
 
   const ent = await getEntitlement(user.id);
   const deviceId = await getDeviceId();
-  const used = !ent.active && (await getStore().findFreeScan({ phone: user.phone, deviceId: deviceId ?? "none" }));
+  const used = config.freeScanLimits && !ent.active && (await getStore().findFreeScan({ phone: user.phone, deviceId: deviceId ?? "none" }));
   const trialAvailable = !user.trialUsedAt;
 
   return (

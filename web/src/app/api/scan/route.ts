@@ -7,6 +7,7 @@ import { requireUser } from "@/lib/guards";
 import { takeRateLimit } from "@/lib/rate-limit";
 import { getClientIp, getDeviceId } from "@/lib/session";
 import { getStore } from "@/lib/store";
+import { config } from "@/lib/config";
 
 export const maxDuration = 60;
 
@@ -22,14 +23,20 @@ export async function POST(req: Request) {
     const deviceId = await getDeviceId();
     const ip = await getClientIp();
 
+    let previous = null;
     if (!ent.active) {
       if (!deviceId) throw new UserError("הדפדפן חוסם עוגיות. אפשרו עוגיות ונסו שוב.");
-      const previous = await store.findFreeScan({ phone: user.phone, deviceId });
-      if (previous) {
-        throw new UserError("הבדיקה החינמית כבר נוצלה. כדי לקבל את הדוח המלא וגרסה מותאמת, אפשר להתחיל בשבוע היכרות.", 402);
-      }
-      if (!(await takeRateLimit(`scan:ip:${ip}`, 3, 24 * 60))) {
-        throw new UserError("הגעתם למספר הבדיקות החינמיות מהרשת הזו היום.", 429);
+      previous = await store.findFreeScan({ phone: user.phone, deviceId });
+      if (config.freeScanLimits) {
+        if (previous) {
+          throw new UserError("הבדיקה החינמית כבר נוצלה. כדי לקבל את הדוח המלא וגרסה מותאמת, אפשר להתחיל בשבוע היכרות.", 402);
+        }
+        if (!(await takeRateLimit(`scan:ip:${ip}`, 3, 24 * 60))) {
+          throw new UserError("הגעתם למספר הבדיקות החינמיות מהרשת הזו היום.", 429);
+        }
+      } else if (!(await takeRateLimit(`scan:user:${user.id}`, 10, 24 * 60))) {
+        // Limits are open; this only stops runaway AI costs.
+        throw new UserError("עשיתם היום הרבה בדיקות. אפשר להמשיך מחר.", 429);
       }
     }
 
@@ -43,7 +50,7 @@ export async function POST(req: Request) {
 
     const result = await runScan(resumeText, job);
 
-    if (!ent.active) {
+    if (!ent.active && !previous) {
       await store.addFreeScan({
         id: randomUUID(),
         userId: user.id,
