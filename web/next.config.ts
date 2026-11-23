@@ -11,7 +11,13 @@ const nextConfig: NextConfig = {
   // Request-time pages (sessions, billing) are the norm in this app, so we keep
   // the classic dynamic rendering model instead of Cache Components.
   cacheComponents: false,
-  serverExternalPackages: ["unpdf", "mammoth"],
+  // Headless Chromium for the "download PDF" routes. It must stay external
+  // (it finds its compressed binary by relative path) and its bin/ folder has
+  // to ship with those two functions.
+  serverExternalPackages: ["unpdf", "mammoth", "@sparticuz/chromium", "puppeteer-core"],
+  outputFileTracingIncludes: {
+    "/api/*/*/pdf": ["./node_modules/@sparticuz/chromium/bin/**/*"],
+  },
   turbopack: {
     rules: {
       "*.css": {

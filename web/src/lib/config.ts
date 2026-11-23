@@ -28,6 +28,12 @@ export const config = {
     authToken: process.env.TWILIO_AUTH_TOKEN,
     from: process.env.TWILIO_FROM,
   },
+  /**
+   * Free fit check limits (one per phone and device, 3 per network a day).
+   * Temporarily OFF by the owner's request (Nov 2026): everyone can run the
+   * free check again. Set back to true to restore the limits.
+   */
+  freeScanLimits: false,
   paymentProvider: (process.env.PAYMENT_PROVIDER || "demo") as "demo",
   isProd,
 };
