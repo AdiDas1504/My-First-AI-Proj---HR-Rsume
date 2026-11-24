@@ -19,7 +19,8 @@ const KIND_WEIGHT: Record<RequirementKind, number> = { core: 3, skill: 2, creden
 /** Partial evidence (related, smaller scope, transferable) is worth well under half. */
 const CREDIT = { met: 1, partial: 0.4, missing: 0 } as const;
 const ALIGNMENT: Record<RoleAlignment, number> = { same: 1, adjacent: 0.9, transferable: 0.72, unrelated: 0.45 };
-const SENIORITY: Record<Seniority, number> = { fits: 1, above: 0.95, one_below: 0.88, far_below: 0.7 };
+// Mild on purpose: missing years are usually also a core requirement, so this must not double-punish.
+const SENIORITY: Record<Seniority, number> = { fits: 1, above: 0.95, one_below: 0.93, far_below: 0.8 };
 
 export function requirementWeight(r: Scored): number {
   return KIND_WEIGHT[r.kind ?? "skill"] * (r.importance === "must" ? 1 : 0.5);

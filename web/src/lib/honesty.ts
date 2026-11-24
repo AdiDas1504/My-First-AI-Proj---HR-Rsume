@@ -8,6 +8,11 @@ import type { HonestyFlag, TailoredResume } from "./types";
  */
 
 const HEB_PREFIX = /^[והבכלמש]{1,2}(?=[א-ת]{2,})/;
+/** Light Hebrew stem: drop a prefix and a common ending, so "רווחה" matches "רווחת", "עובד" matches "עובדים". */
+function stem(t: string): string {
+  const s = t.replace(HEB_PREFIX, "");
+  return /^[א-ת]{4,}$/.test(s) ? s.replace(/(ים|ות|ת|ה|י)$/, "") : s;
+}
 
 function normalize(text: string): string {
   return text
@@ -38,6 +43,7 @@ function makeSourceIndex(source: string) {
   for (const t of tokens(source)) {
     tokenSet.add(t);
     tokenSet.add(t.replace(HEB_PREFIX, ""));
+    tokenSet.add(stem(t));
   }
   const numbers = new Set((source.match(/\d+(?:[.,]\d+)?/g) ?? []).map((n) => n.replace(",", ".")));
   return { norm, tokenSet, numbers };
@@ -51,7 +57,7 @@ function phraseSupported(phrase: string, idx: SourceIndex): boolean {
   if (idx.norm.includes(norm)) return true;
   const toks = tokens(phrase);
   if (toks.length === 0) return true;
-  const found = toks.filter((t) => idx.tokenSet.has(t) || idx.tokenSet.has(t.replace(HEB_PREFIX, ""))).length;
+  const found = toks.filter((t) => idx.tokenSet.has(t) || idx.tokenSet.has(t.replace(HEB_PREFIX, "")) || idx.tokenSet.has(stem(t))).length;
   return found / toks.length >= 0.6;
 }
 

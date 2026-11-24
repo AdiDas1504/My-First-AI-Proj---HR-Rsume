@@ -180,7 +180,7 @@ async function main() {
     check("HR case: 3-7 questions", questions.length >= 3 && questions.length <= 7, `${questions.length}`);
 
     // Give each simulated answer to the question that asks about it.
-    const topicOf = [/הנהל|עסק|אסטרטג|שותפ|יעד/, /מד(ד|ו)|נתונ|ROI|KPI|תחלופ|תוצא|השפע/, /ניהל|צוות|כפיפ|עובדים תחת/];
+    const topicOf = [/הנהל|עסק|אסטרטג|שותפ|יעד/, /מד(ד|ו)|נתונ|ROI|KPI|תחלופ|תוצא|השפע/, /ניהל|צוות|כפיפ|עובדים תחת|מדווחים אליך|עובדים ש/];
     const used = new Set<string>();
     const answers: CandidateAnswer[] = [];
     HR_CASE.answers.forEach((answer, n) => {

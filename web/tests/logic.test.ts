@@ -350,3 +350,16 @@ describe("resume layout", () => {
     expect(r.tools).toEqual(["Excel", "Power BI", "כלי בינה מלאכותית (AI)"]);
   });
 });
+
+describe("honesty check wording tolerance", () => {
+  const base: TailoredResume = {
+    language: "he", fullName: "דנה", headline: "", contact: { email: "", phone: "", location: "", links: [] },
+    summary: "", experience: [], education: [], skills: [], languages: [], certifications: [],
+  };
+  it("accepts a skill worded in another Hebrew form", () => {
+    expect(checkHonesty({ ...base, skills: ["רווחת עובדים"] }, "טיפול בשכר, נוכחות ורווחה של העובדים")).toEqual([]);
+  });
+  it("still flags a skill that is not in the source", () => {
+    expect(checkHonesty({ ...base, skills: ["תכנון אסטרטגי ותקציבי"] }, "טיפול בשכר, נוכחות ורווחה של העובדים")).toHaveLength(1);
+  });
+});
