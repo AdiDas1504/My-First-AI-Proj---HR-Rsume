@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { normalizeIsraeliMobile, maskPhone } from "../src/lib/phone";
 import { computeScore, potentialScore, rankGaps } from "../src/lib/scoring";
-import { checkHonesty, newNumbers } from "../src/lib/honesty";
+import { checkHonesty, dropUnsupportedSkills, newNumbers } from "../src/lib/honesty";
 import { verifyRequirements } from "../src/lib/evidence";
 import { canPurchase, computeEntitlement, periodFrom, usageWindowStart } from "../src/lib/entitlement";
 import { safeNext } from "../src/lib/safe-next";
@@ -361,5 +361,17 @@ describe("honesty check wording tolerance", () => {
   });
   it("still flags a skill that is not in the source", () => {
     expect(checkHonesty({ ...base, skills: ["תכנון אסטרטגי ותקציבי"] }, "טיפול בשכר, נוכחות ורווחה של העובדים")).toHaveLength(1);
+  });
+});
+
+describe("unsupported skills", () => {
+  it("moves skills without a basis out of the resume", () => {
+    const r: TailoredResume = {
+      language: "he", fullName: "דנה", headline: "", contact: { email: "", phone: "", location: "", links: [] },
+      summary: "", experience: [], education: [], skills: ["גיוס עובדים", "שימור עובדים", "Excel"], languages: [], certifications: [],
+    };
+    const { resume, dropped } = dropUnsupportedSkills(r, "גיוס עובדים לכל המחלקות, עבודה ב-Excel");
+    expect(resume.skills).toEqual(["גיוס עובדים", "Excel"]);
+    expect(dropped).toEqual(["שימור עובדים"]);
   });
 });

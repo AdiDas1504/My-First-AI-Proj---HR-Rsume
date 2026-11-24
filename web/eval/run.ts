@@ -13,7 +13,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { answersToSource, runAnalyze, runScan, runTailor, type AnalyzeOutput, type CandidateAnswer } from "../src/lib/ai";
-import { checkHonesty } from "../src/lib/honesty";
+import { checkHonesty, dropUnsupportedSkills } from "../src/lib/honesty";
 import type { JobInput } from "../src/lib/extract";
 import { EXPECTED, HR_CASE, JOBS, RESUMES, type JobId, type ResumeId } from "./fixtures";
 
@@ -180,7 +180,7 @@ async function main() {
     check("HR case: 3-7 questions", questions.length >= 3 && questions.length <= 7, `${questions.length}`);
 
     // Give each simulated answer to the question that asks about it.
-    const topicOf = [/הנהל|עסק|אסטרטג|שותפ|יעד/, /מד(ד|ו)|נתונ|ROI|KPI|תחלופ|תוצא|השפע/, /ניהל|צוות|כפיפ|עובדים תחת|מדווחים אליך|עובדים ש/];
+    const topicOf = [/הנהל|עסק|אסטרטג|שותפ|יעד/, /מד(ד|ו)|נתונ|ROI|KPI|תחלופ|תוצא|השפע/, /ניהל|צוות|כפו?יפ|כפופ|עובדים תחת|מדווחים אליך|עובדים ש/];
     const used = new Set<string>();
     const answers: CandidateAnswer[] = [];
     HR_CASE.answers.forEach((answer, n) => {
@@ -196,8 +196,12 @@ async function main() {
     const withAnswers = await retry(() => runTailor(RESUMES[HR_CASE.resume], job(HR_CASE.job), lang, { analysis, answers }), "tailor with answers");
     const noAnswers = await retry(() => runTailor(RESUMES[HR_CASE.resume], job(HR_CASE.job), lang, { analysis, answers: [] }), "tailor without answers");
     const text = (x: typeof withAnswers) => JSON.stringify(x.resume);
-    const flagsWith = checkHonesty(withAnswers.resume, [RESUMES[HR_CASE.resume], answersToSource(answers)].join("\n\n"));
-    const flagsWithout = checkHonesty(noAnswers.resume, RESUMES[HR_CASE.resume]);
+    // Same post-processing as the site: unsupported skills move to "add only if true".
+    const srcWith = [RESUMES[HR_CASE.resume], answersToSource(answers)].join("\n\n");
+    const cleanWith = dropUnsupportedSkills(withAnswers.resume, srcWith);
+    const cleanWithout = dropUnsupportedSkills(noAnswers.resume, RESUMES[HR_CASE.resume]);
+    const flagsWith = checkHonesty(cleanWith.resume, srcWith);
+    const flagsWithout = checkHonesty(cleanWithout.resume, RESUMES[HR_CASE.resume]);
     const usedTerms = HR_CASE.expectedInResume.filter((re) => re.test(text(withAnswers)));
     lines.push(
       `## 4. HR case: writing`,
@@ -208,6 +212,7 @@ async function main() {
       ...(withAnswers.resume.experience[0]?.bullets ?? []).map((b) => `- ${b}`),
       ``,
       `Honesty flags: ${flagsWith.length ? flagsWith.map((f) => `${f.value} (${f.reason})`).join("; ") : "none"}`,
+      `Skills moved to "add only if true": ${cleanWith.dropped.join(", ") || "none"}`,
       ``,
       `**Without answers** (summary): ${noAnswers.resume.summary}`,
       ``,

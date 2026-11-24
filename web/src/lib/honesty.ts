@@ -136,3 +136,16 @@ export function checkHonesty(resume: TailoredResume, sourceText: string): Honest
     return true;
   });
 }
+
+/**
+ * Skills the source does not support are taken out of the resume and offered
+ * as "add only if true" instead, so a skills list never claims more than the
+ * candidate told us.
+ */
+export function dropUnsupportedSkills(resume: TailoredResume, sourceText: string): { resume: TailoredResume; dropped: string[] } {
+  const idx = makeSourceIndex(sourceText);
+  const sameLanguage = (hebrewRatio(sourceText) > 0.3) === (resume.language === "he");
+  const checkable = (s: string) => sameLanguage || /[a-z]/i.test(s);
+  const dropped = resume.skills.filter((s) => checkable(s) && !phraseSupported(s, idx));
+  return { resume: { ...resume, skills: resume.skills.filter((s) => !dropped.includes(s)) }, dropped };
+}
