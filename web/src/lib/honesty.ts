@@ -7,11 +7,20 @@ import type { HonestyFlag, TailoredResume } from "./types";
  * again after every user edit. It flags; the user decides.
  */
 
-const HEB_PREFIX = /^[והבכלמש]{1,2}(?=[א-ת]{2,})/;
-/** Light Hebrew stem: drop a prefix and a common ending, so "רווחה" matches "רווחת", "עובד" matches "עובדים". */
-function stem(t: string): string {
-  const s = t.replace(HEB_PREFIX, "");
-  return /^[א-ת]{4,}$/.test(s) ? s.replace(/(ים|ות|ת|ה|י)$/, "") : s;
+/**
+ * Forms of a word to match on: as written, without a 1- or 2-letter prefix
+ * ("והשמה" -> "השמה", "שמה"), and with a common ending dropped
+ * ("רווחה" / "רווחת" -> "רווח", "עובדים" -> "עובד").
+ */
+function forms(t: string): string[] {
+  const out = new Set([t]);
+  if (/^[א-ת]+$/.test(t)) {
+    for (const n of [1, 2]) {
+      if (t.length - n >= 2 && /^[והבכלמש]+$/.test(t.slice(0, n))) out.add(t.slice(n));
+    }
+    for (const f of [...out]) if (f.length >= 4) out.add(f.replace(/(ים|ות|ת|ה|י)$/, ""));
+  }
+  return [...out];
 }
 
 function normalize(text: string): string {
@@ -40,11 +49,7 @@ export function hebrewRatio(text: string): number {
 function makeSourceIndex(source: string) {
   const norm = normalize(source);
   const tokenSet = new Set<string>();
-  for (const t of tokens(source)) {
-    tokenSet.add(t);
-    tokenSet.add(t.replace(HEB_PREFIX, ""));
-    tokenSet.add(stem(t));
-  }
+  for (const t of tokens(source)) for (const f of forms(t)) tokenSet.add(f);
   const numbers = new Set((source.match(/\d+(?:[.,]\d+)?/g) ?? []).map((n) => n.replace(",", ".")));
   return { norm, tokenSet, numbers };
 }
@@ -57,7 +62,7 @@ function phraseSupported(phrase: string, idx: SourceIndex): boolean {
   if (idx.norm.includes(norm)) return true;
   const toks = tokens(phrase);
   if (toks.length === 0) return true;
-  const found = toks.filter((t) => idx.tokenSet.has(t) || idx.tokenSet.has(t.replace(HEB_PREFIX, "")) || idx.tokenSet.has(stem(t))).length;
+  const found = toks.filter((t) => forms(t).some((f) => idx.tokenSet.has(f))).length;
   return found / toks.length >= 0.6;
 }
 

@@ -33,6 +33,7 @@ How to assess fit. Think like a senior recruiter screening candidates for THIS e
   kind: "core" = the role's central function or responsibility, required years in the role, or required domain; "skill" = professional knowledge, method, system or tool; "credential" = a degree, license or certification the posting asks for; "soft" = an interpersonal trait.
   importance: "must" = required, essential or clearly central; "nice" = an advantage or preferred.
 - status, strictly from the resume: "met" = shown directly, at a comparable scope and level; "partial" = only related evidence, a smaller scope, or transferable from a different context; "missing" = no real evidence. Generic overlap is not evidence: working with people is not people management, using Excel is not financial modeling, attending meetings is not leading them.
+- Years asked for a function: met = the resume's dates in that function reach the years asked; partial = at least about two thirds of them; missing = less, or not in that function. Count from the dates, do not guess.
 - evidence: copy a short EXACT quote (3-15 words) from the resume that proves the status, word for word. Empty string when missing. Never paraphrase: quotes that are not found in the resume are discarded and the status is lowered.
 - roleAlignment: "same" = the candidate already does this role (also in another company or industry); "adjacent" = a neighbouring role in the same function (HR generalist -> HR manager, recruiter -> HR business partner, bookkeeper -> accountant); "transferable" = another function with real overlap (operations manager -> HR manager); "unrelated" = little professional overlap.
 - seniority: "fits"; "above" = clearly more senior than needed; "one_below" = one step short (specialist applying for manager); "far_below" = far from the level or years asked (junior applying for head of department).
@@ -184,10 +185,11 @@ Voice for every user-facing text: Hebrew, speaking directly to the candidate in 
 
 export async function runScan(resumeText: string, job: JobInput): Promise<ScanResult> {
   if (demo.ai) return demoScan(resumeText, job);
-  const out = await callTool({
-    model: config.modelScan,
-    maxTokens: 3500,
-    system: `${HONESTY_RULES}
+  const once = () =>
+    callTool({
+      model: config.modelScan,
+      maxTokens: 3500,
+      system: `${HONESTY_RULES}
 
 ${ASSESSMENT_RULES}
 
@@ -199,54 +201,63 @@ Task: a quick fit check that shows the candidate what tailoring would do for the
   "missing" = the resume has no real evidence for it.
   Use "none" for met requirements. Be strict: if in doubt, it is "missing".
 - sampleRewrite: pick ONE real line from the resume that matters for this job and rewrite it in the job's language and terminology. "before" must be copied exactly from the resume; "after" may only use facts found in "before" (no new numbers, tools, scope or results). Return null if no line fits.`,
-    content: [{ type: "text", text: `<resume>\n${resumeText}\n</resume>` }, ...jobContent(job)],
-    tool: {
-      name: "report_fit_check",
-      description: "Report the quick fit check",
-      input_schema: {
-        type: "object",
-        properties: {
-          jobTitle: { type: "string" },
-          company: { type: "string", description: "Empty string if unknown" },
-          verdict: {
-            type: "string",
-            description: "Hebrew, second person, max 2 short sentences: honest overall fit plus the biggest opportunity",
-          },
-          strengths: {
-            type: "array",
-            items: { type: "string" },
-            description: "Hebrew, second person, 2-3 short points that already make the candidate relevant, each grounded in the resume",
-          },
-          ...fitJson,
-          requirements: {
-            type: "array",
-            items: {
-              ...requirementJson,
-              properties: {
-                ...requirementJson.properties,
-                tip: { type: "string", description: "For non-met: one short, practical Hebrew sentence in second person on how to present or close the gap honestly" },
-                gapType: { type: "string", enum: ["phrasing", "missing", "none"] },
+      content: [{ type: "text", text: `<resume>\n${resumeText}\n</resume>` }, ...jobContent(job)],
+      tool: {
+        name: "report_fit_check",
+        description: "Report the quick fit check",
+        input_schema: {
+          type: "object",
+          properties: {
+            jobTitle: { type: "string" },
+            company: { type: "string", description: "Empty string if unknown" },
+            verdict: {
+              type: "string",
+              description: "Hebrew, second person, max 2 short sentences: honest overall fit plus the biggest opportunity",
+            },
+            strengths: {
+              type: "array",
+              items: { type: "string" },
+              description: "Hebrew, second person, 2-3 short points that already make the candidate relevant, each grounded in the resume",
+            },
+            ...fitJson,
+            requirements: {
+              type: "array",
+              items: {
+                ...requirementJson,
+                properties: {
+                  ...requirementJson.properties,
+                  tip: { type: "string", description: "For non-met: one short, practical Hebrew sentence in second person on how to present or close the gap honestly" },
+                  gapType: { type: "string", enum: ["phrasing", "missing", "none"] },
+                },
+                required: [...requirementJson.required, "tip", "gapType"],
               },
-              required: [...requirementJson.required, "tip", "gapType"],
+            },
+            sampleRewrite: {
+              anyOf: [
+                {
+                  type: "object",
+                  properties: { before: { type: "string" }, after: { type: "string" } },
+                  required: ["before", "after"],
+                },
+                { type: "null" },
+              ],
             },
           },
-          sampleRewrite: {
-            anyOf: [
-              {
-                type: "object",
-                properties: { before: { type: "string" }, after: { type: "string" } },
-                required: ["before", "after"],
-              },
-              { type: "null" },
-            ],
-          },
+          required: ["jobTitle", "company", "verdict", "strengths", "roleAlignment", "seniority", "requirements", "sampleRewrite"],
         },
-        required: ["jobTitle", "company", "verdict", "strengths", "roleAlignment", "seniority", "requirements", "sampleRewrite"],
       },
-    },
-    schema: scanSchema,
-  });
+      schema: scanSchema,
+    });
 
+  // Haiku varies from run to run; three independent checks, keep the middle one.
+  const settled = await Promise.allSettled([once(), once(), once()]);
+  const ok = settled.flatMap((r) => (r.status === "fulfilled" ? [r.value] : []));
+  if (!ok.length) throw (settled[0] as PromiseRejectedResult).reason;
+  const results = ok.map((out) => toScanResult(out, resumeText)).sort((a, b) => a.score - b.score);
+  return results[Math.floor((results.length - 1) / 2)];
+}
+
+function toScanResult(out: z.infer<typeof scanSchema>, resumeText: string): ScanResult {
   const ctx = { roleAlignment: out.roleAlignment, seniority: out.seniority };
   const reqs = verifyRequirements(out.requirements, resumeText).map((r) => ({
     ...r,
@@ -313,9 +324,32 @@ Role research. This is what makes the result sharp instead of generic: a hiring 
 
 export type AnalyzeOutput = { analysis: Analysis; questions: TailorQuestion[] };
 
+/** A lazy or broken answer (too little research, no questions, placeholder text) is asked again. */
+function analysisLooksComplete(out: z.infer<typeof analyzeSchema>): boolean {
+  return (
+    out.requirements.length >= 4 &&
+    out.insights.length >= 5 &&
+    out.insights.every((i) => i.topic.trim().length >= 3) &&
+    out.questions.length >= 2 &&
+    out.questions.every((q) => q.question.trim().length >= 15)
+  );
+}
+
 export async function runAnalyze(resumeText: string, job: JobInput): Promise<AnalyzeOutput> {
   if (demo.ai) return demoAnalyze(resumeText, job);
-  const out = await callTool({
+  let out = await analyzeOnce(resumeText, job);
+  if (!analysisLooksComplete(out)) {
+    console.error("Incomplete analysis, asking again", { insights: out.insights.length, questions: out.questions.length });
+    const second = await analyzeOnce(resumeText, job).catch(() => null);
+    if (second && (analysisLooksComplete(second) || second.insights.length + second.questions.length > out.insights.length + out.questions.length)) {
+      out = second;
+    }
+  }
+  return finishAnalysis(out, resumeText);
+}
+
+function analyzeOnce(resumeText: string, job: JobInput) {
+  return callTool({
     model: config.modelTailor,
     maxTokens: 7000,
     system: `${HONESTY_RULES}
@@ -370,7 +404,6 @@ Task: analyze the fit between the resume and the job, research what the role rea
     },
     schema: analyzeSchema,
   });
-  return finishAnalysis(out, resumeText);
 }
 
 /** Verify the AI's quotes against the resume, then compute the score. */
