@@ -97,8 +97,6 @@ export async function callTool<T>(opts: {
   tool: { name: string; description: string; input_schema: Record<string, unknown> };
   schema: z.ZodType<T>;
   maxTokens: number;
-  /** Only applied when extended thinking is off (it requires the default temperature). */
-  temperature?: number;
 }): Promise<T> {
   const auto = rejectsForcedToolUse(opts.model);
   const tool = (
@@ -119,7 +117,9 @@ export async function callTool<T>(opts: {
         system,
         tools: [tool],
         tool_choice: auto ? { type: "auto" } : { type: "tool", name: opts.tool.name },
-        ...(thinking ? { thinking } : opts.temperature !== undefined ? { temperature: opts.temperature } : {}),
+        // No temperature: the 5.5 models reject it. Stability comes from the rubric,
+        // the evidence check and the score being computed in code.
+        ...(thinking ? { thinking } : {}),
         messages: [{ role: "user", content: opts.content }],
       });
     } catch (err) {
@@ -187,7 +187,6 @@ export async function runScan(resumeText: string, job: JobInput): Promise<ScanRe
   const out = await callTool({
     model: config.modelScan,
     maxTokens: 3500,
-    temperature: 0,
     system: `${HONESTY_RULES}
 
 ${ASSESSMENT_RULES}
