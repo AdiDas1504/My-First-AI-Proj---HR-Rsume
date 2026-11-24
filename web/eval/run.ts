@@ -53,6 +53,14 @@ const sd = (xs: number[]) => Math.sqrt(mean(xs.map((x) => (x - mean(xs)) ** 2)))
 const inBand = (s: number, [lo, hi]: [number, number]) => s >= lo && s <= hi;
 const best = (j: JobId) => resumeIds.reduce((a, b) => (EXPECTED[j][a][0] >= EXPECTED[j][b][0] ? a : b));
 
+// Keep the AI layer's error logs (status and API message) for the failure report.
+const errorLog: string[] = [];
+const origError = console.error;
+console.error = (...args: unknown[]) => {
+  errorLog.push(args.map((a) => (typeof a === "string" ? a : JSON.stringify(a))).join(" ").slice(0, 600));
+  origError(...args);
+};
+
 async function main() {
   if (!process.env.ANTHROPIC_API_KEY) throw new Error("Set ANTHROPIC_API_KEY to run the evaluation against Claude.");
   const lines: string[] = [`# JobFit quality evaluation`, ``, `Date: ${new Date().toISOString()} · scan reps: ${REPS}`, ``];
@@ -238,6 +246,6 @@ main().catch((err) => {
   // Shape of the key only (never its value), to tell a wrong paste from a revoked key.
   const key = process.env.ANTHROPIC_API_KEY ?? "";
   const shape = `key set: ${key ? "yes" : "no"} · starts with sk-ant-: ${key.trim().startsWith("sk-ant-") ? "yes" : "no"} · spaces or line breaks around it: ${key !== key.trim() ? "yes" : "no"} · length: ${key.trim().length}`;
-  writeFileSync(path.join(dir, "latest.md"), `# JobFit quality evaluation\n\n**The evaluation failed:** ${(err as Error).message}\n\n${shape}\n`);
+  writeFileSync(path.join(dir, "latest.md"), `# JobFit quality evaluation\n\n**The evaluation failed:** ${(err as Error).message}\n\n${shape}\n\nLast errors:\n\n${errorLog.slice(-3).map((e) => "- " + e).join("\n")}\n`);
   process.exit(1);
 });
