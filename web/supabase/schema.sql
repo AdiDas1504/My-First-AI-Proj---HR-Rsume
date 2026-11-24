@@ -99,6 +99,24 @@ create table if not exists builder_drafts (
 );
 create index if not exists builder_drafts_user_time on builder_drafts (user_id, updated_at desc);
 
+-- Tailoring step between "analyze" and "write": the analysis, the role research,
+-- the questions and the candidate's answers. Deleted after 7 days by the app.
+create table if not exists tailor_sessions (
+  id uuid primary key,
+  user_id uuid not null references users(id) on delete cascade,
+  resume_text text not null,
+  job jsonb not null,
+  language text not null default 'auto' check (language in ('auto','he','en')),
+  analysis jsonb not null,
+  questions jsonb not null default '[]',
+  answers jsonb not null default '{}',
+  document_id uuid,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index if not exists tailor_sessions_user on tailor_sessions (user_id, created_at desc);
+create index if not exists tailor_sessions_created on tailor_sessions (created_at);
+
 -- Payments are kept for accounting even if the account is deleted.
 create table if not exists payments (
   id uuid primary key,
@@ -119,6 +137,7 @@ alter table usage_events enable row level security;
 alter table documents enable row level security;
 alter table payments enable row level security;
 alter table builder_drafts enable row level security;
+alter table tailor_sessions enable row level security;
 
 -- The server key works through the service_role Postgres role. Grant it
 -- explicitly, in case the project doesn't expose new tables automatically.
@@ -126,7 +145,6 @@ grant usage on schema public to service_role;
 grant all on all tables in schema public to service_role;
 grant all on all sequences in schema public to service_role;
 
--- Housekeeping: delete tailored documents older than 180 days (privacy policy).
--- Schedule with pg_cron if enabled:
--- select cron.schedule('purge-old-docs', '0 3 * * *',
---   $$delete from documents where updated_at < now() - interval '180 days'$$);
+-- Housekeeping (privacy policy): the app itself deletes, once a day, documents and
+-- builder drafts not updated for 180 days, tailoring sessions older than 7 days,
+-- expired login codes and old rate-limit counters (src/lib/privacy.ts).

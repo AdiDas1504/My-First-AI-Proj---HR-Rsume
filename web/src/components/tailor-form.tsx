@@ -18,7 +18,7 @@ export function TailorForm({ fromDraft }: { fromDraft?: { id: string; title: str
       const res = await fetch("/api/tailor", { method: "POST", body: new FormData(e.currentTarget) });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error ?? "משהו השתבש. נסו שוב.");
-      router.push(`/app/doc/${data.id}`);
+      router.push(`/app/new/${data.id}`);
     } catch (err) {
       setError((err as Error).message);
       setBusy(false);
@@ -62,15 +62,15 @@ export function TailorForm({ fromDraft }: { fromDraft?: { id: string; title: str
           steps={[
             "קוראים את קורות החיים…",
             "מזהים את דרישות המשרה…",
+            "בודקים מה נדרש בדרך כלל בתפקיד כזה…",
             "בודקים כל דרישה מול הניסיון שלך…",
-            "מנסחים מחדש בשפה של המשרה…",
-            "מריצים בדיקת יושר…",
+            "מכינים כמה שאלות בשבילך…",
             "עוד כמה שניות…",
           ]}
         />
       ) : (
         <button type="submit" className="btn btn-primary w-full text-lg">
-          ליצירת גרסה מותאמת
+          לבדיקה ולשאלות לפני הכתיבה
         </button>
       )}
     </form>

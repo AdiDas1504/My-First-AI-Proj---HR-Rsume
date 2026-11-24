@@ -1,38 +1,71 @@
-import type { Requirement } from "./types";
+import type { Requirement, RequirementKind, RoleAlignment, Seniority } from "./types";
 
 /**
- * Match score from the requirement list, so the number is consistent and
- * explainable: must-haves weigh twice as much, partial matches count half.
+ * Match score (v2). The AI never produces the number: it only assesses each
+ * requirement (with a verified quote from the resume), the overall role
+ * alignment and the seniority gap. The score is computed here, so it is
+ * consistent, explainable, and clearly different for strong and weak fits.
+ *
+ * Why v2: in v1 every requirement weighed about the same, "partial" was worth
+ * half, generic soft skills counted fully and a missing core must-have barely
+ * hurt, so most resumes landed around 50-65 whatever the job.
  */
-export function computeScore(requirements: Pick<Requirement, "importance" | "status">[]): number {
+
+type Scored = Pick<Requirement, "importance" | "status"> & { kind?: RequirementKind };
+export type FitContext = { roleAlignment?: RoleAlignment; seniority?: Seniority };
+
+/** How much a requirement can move the score: the job's core counts most. */
+const KIND_WEIGHT: Record<RequirementKind, number> = { core: 3, skill: 2, credential: 1.5, soft: 0.5 };
+/** Partial evidence (related, smaller scope, transferable) is worth well under half. */
+const CREDIT = { met: 1, partial: 0.4, missing: 0 } as const;
+const ALIGNMENT: Record<RoleAlignment, number> = { same: 1, adjacent: 0.9, transferable: 0.72, unrelated: 0.45 };
+const SENIORITY: Record<Seniority, number> = { fits: 1, above: 0.95, one_below: 0.88, far_below: 0.7 };
+
+export function requirementWeight(r: Scored): number {
+  return KIND_WEIGHT[r.kind ?? "skill"] * (r.importance === "must" ? 1 : 0.5);
+}
+
+export function computeScore(requirements: Scored[], ctx: FitContext = {}): number {
   if (requirements.length === 0) return 0;
   let total = 0;
   let got = 0;
   for (const r of requirements) {
-    const weight = r.importance === "must" ? 2 : 1;
-    total += weight;
-    got += weight * (r.status === "met" ? 1 : r.status === "partial" ? 0.5 : 0);
+    const w = requirementWeight(r);
+    total += w;
+    got += w * CREDIT[r.status];
   }
-  return Math.round((got / total) * 100);
+  let score = (got / total) * 100;
+  score *= ALIGNMENT[ctx.roleAlignment ?? "same"] * SENIORITY[ctx.seniority ?? "fits"];
+
+  // Knock-outs: a recruiter screens these out regardless of everything else.
+  const missingCoreMust = requirements.filter((r) => r.kind === "core" && r.importance === "must" && r.status === "missing").length;
+  const missingCredentialMust = requirements.some((r) => r.kind === "credential" && r.importance === "must" && r.status === "missing");
+  if (missingCoreMust >= 2) score = Math.min(score, 35);
+  else if (missingCoreMust === 1) score = Math.min(score, 55);
+  if (missingCredentialMust) score = Math.min(score, 60);
+
+  return Math.max(0, Math.min(100, Math.round(score)));
 }
 
 /**
  * Honest upside: the score if every gap that is only a wording problem
  * (real experience, under-stated) were presented properly. Truly missing
- * requirements stay missing.
+ * requirements stay missing, so knock-outs still apply.
  */
 export function potentialScore(
-  requirements: (Pick<Requirement, "importance" | "status"> & { gapType?: string })[],
+  requirements: (Scored & { gapType?: string })[],
+  ctx: FitContext = {},
 ): number {
   return computeScore(
     requirements.map((r) => (r.gapType === "phrasing" ? { ...r, status: "met" as const } : r)),
+    ctx,
   );
 }
 
-/** Gaps ordered by what hurts most: missing must-haves first. */
-export function rankGaps<T extends Pick<Requirement, "importance" | "status">>(requirements: T[]): T[] {
-  const rank = (r: T) => (r.importance === "must" ? 0 : 2) + (r.status === "missing" ? 0 : 1);
-  return requirements.filter((r) => r.status !== "met").sort((a, b) => rank(a) - rank(b));
+/** Gaps ordered by what hurts most: heavy missing requirements first. */
+export function rankGaps<T extends Scored>(requirements: T[]): T[] {
+  const lost = (r: T) => requirementWeight(r) * (1 - CREDIT[r.status]);
+  return requirements.filter((r) => r.status !== "met").sort((a, b) => lost(b) - lost(a));
 }
 
 export function scoreLabel(score: number): string {
@@ -41,3 +74,17 @@ export function scoreLabel(score: number): string {
   if (score >= 40) return "התאמה חלקית";
   return "התאמה נמוכה";
 }
+
+export const ALIGNMENT_LABEL: Record<RoleAlignment, string> = {
+  same: "אותו תפקיד",
+  adjacent: "תפקיד קרוב",
+  transferable: "מעבר מתחום אחר",
+  unrelated: "תחום אחר",
+};
+
+export const SENIORITY_LABEL: Record<Seniority, string> = {
+  fits: "רמת ניסיון מתאימה",
+  above: "ניסיון מעל הנדרש",
+  one_below: "דרגה אחת מתחת לנדרש",
+  far_below: "רחוק מהניסיון הנדרש",
+};

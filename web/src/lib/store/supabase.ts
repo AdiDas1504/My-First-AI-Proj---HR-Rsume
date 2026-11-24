@@ -1,12 +1,13 @@
 import "server-only";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import type { Store, FreeScanRecord, DocumentSummary, DraftSummary } from "./types";
+import type { Store, FreeScanRecord, DocumentSummary, DraftSummary, PurgeCutoffs } from "./types";
 import type {
   BuilderDraft,
   OtpChallenge,
   Payment,
   Subscription,
   TailorDocument,
+  TailorSession,
   UsageKind,
   User,
 } from "../types";
@@ -186,13 +187,13 @@ export class SupabaseStore implements Store {
     );
   }
 
-  async findFreeScan(by: { phone: string; deviceId: string }) {
+  async findFreeScan(by: { phones: string[]; deviceId: string }) {
     const r = check(
       await this.db
         .from("free_scans")
         .select("*")
-        // Values are quoted for PostgREST; callers validate both formats first.
-        .or(`phone.eq."${by.phone}",device_id.eq."${by.deviceId}"`)
+        // Values are quoted for PostgREST; callers validate all formats first.
+        .or([...by.phones.map((p) => `phone.eq."${p}"`), `device_id.eq."${by.deviceId}"`].join(","))
         .limit(1)
         .maybeSingle(),
     );
@@ -210,6 +211,10 @@ export class SupabaseStore implements Store {
         ip: f.ip,
       }),
     );
+  }
+
+  async rekeyFreeScan(id: string, phone: string, ip: string) {
+    check(await this.db.from("free_scans").update({ phone, ip }).eq("id", id));
   }
 
   async addUsage(userId: string, kind: UsageKind) {
@@ -297,6 +302,34 @@ export class SupabaseStore implements Store {
     check(await this.db.from("builder_drafts").delete().eq("id", id).eq("user_id", userId));
   }
 
+  async createSession(x: TailorSession) {
+    check(await this.db.from("tailor_sessions").insert(sessionToRow(x)));
+  }
+  async getSession(userId: string, id: string) {
+    const r = check(
+      await this.db.from("tailor_sessions").select("*").eq("id", id).eq("user_id", userId).maybeSingle(),
+    );
+    return r ? sessionFromRow(r) : null;
+  }
+  async updateSession(x: TailorSession) {
+    check(await this.db.from("tailor_sessions").update(sessionToRow(x)).eq("id", x.id).eq("user_id", x.userId));
+  }
+
+  async purgeExpired(c: PurgeCutoffs) {
+    const del = async (table: string, column: string, before: string) => {
+      const res = await this.db.from(table).delete({ count: "exact" }).lt(column, before);
+      if (res.error) throw new Error(res.error.message);
+      return res.count ?? 0;
+    };
+    return {
+      documents: await del("documents", "updated_at", c.documents),
+      drafts: await del("builder_drafts", "updated_at", c.drafts),
+      sessions: await del("tailor_sessions", "created_at", c.sessions),
+      otps: await del("otp_challenges", "expires_at", c.otps),
+      rateEvents: await del("rate_events", "created_at", c.rateEvents),
+    };
+  }
+
   async addPayment(p: Payment) {
     check(
       await this.db.from("payments").insert({
@@ -323,4 +356,36 @@ export class SupabaseStore implements Store {
       createdAt: r.created_at,
     }));
   }
+}
+
+function sessionToRow(x: TailorSession) {
+  return {
+    id: x.id,
+    user_id: x.userId,
+    resume_text: x.resumeText,
+    job: x.job,
+    language: x.language,
+    analysis: x.analysis,
+    questions: x.questions,
+    answers: x.answers,
+    document_id: x.documentId,
+    created_at: x.createdAt,
+    updated_at: x.updatedAt,
+  };
+}
+
+function sessionFromRow(r: any): TailorSession {
+  return {
+    id: r.id,
+    userId: r.user_id,
+    resumeText: r.resume_text,
+    job: r.job,
+    language: r.language,
+    analysis: r.analysis,
+    questions: r.questions ?? [],
+    answers: r.answers ?? {},
+    documentId: r.document_id,
+    createdAt: r.created_at,
+    updatedAt: r.updated_at,
+  };
 }

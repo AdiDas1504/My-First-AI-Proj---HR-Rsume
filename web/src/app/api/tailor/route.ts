@@ -1,23 +1,28 @@
 import { randomUUID } from "node:crypto";
-import { runTailor } from "@/lib/ai";
+import { runAnalyze } from "@/lib/ai";
 import { errorResponse, UserError } from "@/lib/errors";
 import { extractJob, extractResumeText } from "@/lib/extract";
 import { requireActivePlan } from "@/lib/guards";
-import { checkHonesty } from "@/lib/honesty";
 import { takeRateLimit } from "@/lib/rate-limit";
 import { getStore } from "@/lib/store";
 import { resumeToText } from "@/lib/builder";
+import { schedulePurge } from "@/lib/privacy";
 
 export const maxDuration = 180;
 
+/**
+ * Step 1 of tailoring: analyze the fit, research what the role needs, and
+ * prepare questions for the candidate. Nothing is written yet and no quota is
+ * used; the tailored resume is written in step 2 (/api/tailor/[id]/generate).
+ */
 export async function POST(req: Request) {
   try {
     const { user, ent } = await requireActivePlan();
     if (ent.remaining <= 0) {
       throw new UserError(`ניצלתם את ${ent.quota} ההתאמות של התקופה הנוכחית. המכסה מתחדשת בתחילת התקופה הבאה.`, 429);
     }
-    if (!(await takeRateLimit(`tailor:user:${user.id}`, 5, 10))) {
-      throw new UserError("רגע, יותר מדי בקשות ברצף. נסו שוב בעוד כמה דקות.", 429);
+    if (!(await takeRateLimit(`analyze:user:${user.id}`, 10, 60))) {
+      throw new UserError("רגע, יותר מדי בדיקות ברצף. נסו שוב בעוד כמה דקות.", 429);
     }
 
     const form = await req.formData();
@@ -39,27 +44,23 @@ export async function POST(req: Request) {
       file: form.get("jobFile") as File | null,
     });
 
-    const out = await runTailor(resumeText, job, language);
+    const { analysis, questions } = await runAnalyze(resumeText, job);
     const now = new Date().toISOString();
     const id = randomUUID();
-    const title = [out.analysis.jobTitle, out.analysis.company].filter(Boolean).join(" · ") || "משרה";
-
-    const store = getStore();
-    await store.createDocument({
+    await getStore().createSession({
       id,
       userId: user.id,
-      title,
-      analysis: out.analysis,
-      resume: out.resume,
-      addOnlyIfTrue: out.addOnlyIfTrue,
-      changeLog: out.changeLog,
-      honestyFlags: checkHonesty(out.resume, resumeText),
-      sourceResumeText: resumeText,
-      coverLetter: null,
+      resumeText,
+      job,
+      language,
+      analysis,
+      questions,
+      answers: {},
+      documentId: null,
       createdAt: now,
       updatedAt: now,
     });
-    await store.addUsage(user.id, "tailor");
+    schedulePurge();
     return Response.json({ ok: true, id });
   } catch (err) {
     return errorResponse(err);

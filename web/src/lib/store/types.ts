@@ -4,6 +4,7 @@ import type {
   Payment,
   Subscription,
   TailorDocument,
+  TailorSession,
   UsageKind,
   User,
 } from "../types";
@@ -27,6 +28,15 @@ export type DraftSummary = Pick<BuilderDraft, "id" | "mode" | "unlocked" | "crea
   generated: boolean;
 };
 
+/** ISO timestamps: rows last updated (or created) before these are deleted. */
+export type PurgeCutoffs = {
+  documents: string;
+  drafts: string;
+  sessions: string;
+  otps: string;
+  rateEvents: string;
+};
+
 /** Persistence contract. Implemented by a local JSON store (demo) and Supabase. */
 export interface Store {
   findUserByPhone(phone: string): Promise<User | null>;
@@ -47,8 +57,11 @@ export interface Store {
   getSubscription(userId: string): Promise<Subscription | null>;
   upsertSubscription(sub: Subscription): Promise<void>;
 
-  findFreeScan(by: { phone: string; deviceId: string }): Promise<FreeScanRecord | null>;
+  /** phones: the hashed key, plus the plain number to find rows saved before hashing. */
+  findFreeScan(by: { phones: string[]; deviceId: string }): Promise<FreeScanRecord | null>;
   addFreeScan(record: FreeScanRecord): Promise<void>;
+  /** Replace a legacy plain phone / IP with their hashes. */
+  rekeyFreeScan(id: string, phone: string, ip: string): Promise<void>;
 
   addUsage(userId: string, kind: UsageKind): Promise<void>;
   countUsage(userId: string, kind: UsageKind, sinceIso: string): Promise<number>;
@@ -64,6 +77,13 @@ export interface Store {
   listDrafts(userId: string): Promise<DraftSummary[]>;
   updateDraft(draft: BuilderDraft): Promise<void>;
   deleteDraft(userId: string, id: string): Promise<void>;
+
+  createSession(session: TailorSession): Promise<void>;
+  getSession(userId: string, id: string): Promise<TailorSession | null>;
+  updateSession(session: TailorSession): Promise<void>;
+
+  /** Delete data past its retention period (privacy policy). Returns counts. */
+  purgeExpired(cutoffs: PurgeCutoffs): Promise<Record<string, number>>;
 
   addPayment(payment: Payment): Promise<void>;
   listPayments(userId: string): Promise<Payment[]>;

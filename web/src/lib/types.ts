@@ -30,13 +30,34 @@ export type UsageKind = "scan" | "tailor" | "cover";
 
 export type RequirementStatus = "met" | "partial" | "missing";
 
+/** core = the role's central function / years / domain; credential = degree, license, certification. */
+export type RequirementKind = "core" | "skill" | "credential" | "soft";
+export type RoleAlignment = "same" | "adjacent" | "transferable" | "unrelated";
+export type Seniority = "fits" | "above" | "one_below" | "far_below";
+
 export type Requirement = {
   text: string;
   importance: "must" | "nice";
   status: RequirementStatus;
-  /** Short quote or paraphrase from the resume that supports the status. */
+  /** Short exact quote from the resume that supports the status. */
   evidence: string;
+  kind?: RequirementKind;
+  /** False when the AI's quote was not found in the resume (status was lowered). */
+  verified?: boolean;
 };
+
+/** Something employers look for in this role, from the posting or from the role itself. */
+export type RoleInsight = {
+  topic: string;
+  /** "posting" = written in the ad; "role" = typical for this and similar roles even if not written. */
+  source: "posting" | "role";
+  /** shown = clear in the resume; hidden = there but buried or vague; absent = not in the resume. */
+  resumeStatus: "shown" | "hidden" | "absent";
+  evidence: string;
+  why: string;
+};
+
+export type TailorQuestion = { id: string; topic: string; question: string; why: string };
 
 export type Analysis = {
   jobTitle: string;
@@ -46,6 +67,11 @@ export type Analysis = {
   summary: string;
   requirements: Requirement[];
   strengths: string[];
+  roleAlignment?: RoleAlignment;
+  seniority?: Seniority;
+  insights?: RoleInsight[];
+  /** 2 = evidence-checked score with knock-outs. Missing on older documents. */
+  scoreVersion?: number;
 };
 
 export type GapType = "phrasing" | "missing";
@@ -114,6 +140,22 @@ export type TailorDocument = {
   /** Original resume text, kept so the honesty check can run again after edits. */
   sourceResumeText: string;
   coverLetter: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+/** Step between analysis and writing: what we found, and the candidate's answers. */
+export type TailorSession = {
+  id: string;
+  userId: string;
+  resumeText: string;
+  /** The job as given: text, or a screenshot (base64). */
+  job: { kind: "text"; text: string; sourceUrl?: string } | { kind: "image"; mediaType: "image/png" | "image/jpeg" | "image/webp"; data: string };
+  language: "auto" | "he" | "en";
+  analysis: Analysis;
+  questions: TailorQuestion[];
+  answers: Record<string, string>;
+  documentId: string | null;
   createdAt: string;
   updatedAt: string;
 };
