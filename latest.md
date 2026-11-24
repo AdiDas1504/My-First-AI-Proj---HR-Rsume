@@ -1,94 +1,78 @@
 # JobFit quality evaluation
 
-Date: 2026-11-24T12:15:11.071Z · scan reps: 2
+Date: 2026-11-24T12:21:26.076Z · scan reps: 2
 
-**Checks passed: 14/17**
+**Checks passed: 10/17**
 
-- ✅ scan: separation between best and poor fits ≥ 45 (66)
-- ✅ scan: repeated runs differ by ≤ 12 points (9)
+- ✅ scan: separation between best and poor fits ≥ 45 (68)
+- ❌ scan: repeated runs differ by ≤ 12 points (25)
 - ✅ scan: ≥ 80% of pairs inside expected band (22/24)
 - ✅ scan: best candidate ranks first for hrManagerJob (hrManager)
 - ✅ scan: best candidate ranks first for accountantJob (accountant)
 - ✅ scan: best candidate ranks first for projectManagerJob (projectManager)
 - ✅ scan: best candidate ranks first for frontendJob (juniorDev)
 - ✅ analysis: ≥ 80% of pairs inside expected band (8/10)
-- ✅ HR case: role research covers key expectations beyond the ad (4/5 topics)
-- ✅ HR case: at least 3 expectations marked as beyond the ad (6)
-- ✅ HR case: 3-7 questions (7)
-- ❌ HR case: asked about business partnering, metrics and team management (2/3 matched)
-- ✅ HR case: answers show up in the resume (2/2)
+- ❌ HR case: role research covers key expectations beyond the ad (0/5 topics)
+- ❌ HR case: at least 3 expectations marked as beyond the ad (1)
+- ❌ HR case: 3-7 questions (0)
+- ❌ HR case: asked about business partnering, metrics and team management (0/3 matched)
+- ❌ HR case: answers show up in the resume (0/2)
 - ✅ HR case: answers are rewritten professionally, not pasted
 - ❌ HR case: no invented facts with answers (2 flags)
-- ❌ HR case: no invented facts without answers (3 flags)
+- ✅ HR case: no invented facts without answers (0 flags)
 - ✅ HR case: without answers, no metrics it was never given
 
 ## 1. Free scan (Haiku): score matrix
 
 | job \ resume | hrManager | hrManagerPlain | hrGeneralist | accountant | projectManager | juniorDev |
 |---|---|---|---|---|---|---|
-| hrManagerJob | 83 / 81  | 73 / 64  | 22 / 19 ⚠️ (25-60) | 6 / 13  | 11 / 12  | 0 / 0  |
-| accountantJob | 7 / 7  | 11 / 5  | 2 / 2  | 82 / 90  | 19 / 13  | 0 / 0  |
-| projectManagerJob | 23 / 20  | 12 / 4  | 15 / 21  | 16 / 17  | 86 / 92  | 2 / 8  |
-| frontendJob | 0 / 0  | 0 / 0  | 0 / 0  | 0 / 0  | 0 / 5  | 35 / 35 ⚠️ (45-80) |
+| hrManagerJob | 89 / 86  | 73 / 68  | 23 / 20 ⚠️ (25-60) | 3 / 2  | 8 / 9  | 0 / 0  |
+| accountantJob | 17 / 10  | 5 / 2  | 1 / 2  | 87 / 90  | 27 / 23  | 0 / 0  |
+| projectManagerJob | 23 / 26  | 8 / 12  | 21 / 19  | 16 / 16  | 77 / 76  | 5 / 7  |
+| frontendJob | 0 / 0  | 0 / 0  | 0 / 0  | 0 / 0  | 3 / 4  | 62 / 37 ⚠️ (45-80) |
 
-- Best-fit average: **73** · poor-fit average: **7** · separation: **66**
+- Best-fit average: **76** · poor-fit average: **7** · separation: **68**
 - Spread (standard deviation of all scores): **29**
-- Largest change between repeated runs of the same pair: **9** points
+- Largest change between repeated runs of the same pair: **25** points
 - Pairs inside their expected band: **22/24**
 
 ## 2. Full analysis (Sonnet)
 
 | pair | expected | score | alignment | seniority | requirements (met/partial/missing) | unverified quotes |
 |---|---|---|---|---|---|---|
-| hrManagerJob / hrManager | 75-100 | 92 | same | fits | 8/2/0 | 0 |
-| hrManagerJob / hrManagerPlain | 60-95 | 67 | same | fits | 4/5/0 | 0 |
-| hrManagerJob / hrGeneralist | 25-60 | 21 ⚠️ | adjacent | far_below | 1/5/3 | 0 |
-| hrManagerJob / projectManager | 5-40 | 11 | transferable | one_below | 0/5/4 | 0 |
+| hrManagerJob / hrManager | 75-100 | 92 | same | fits | 7/2/0 | 0 |
+| hrManagerJob / hrManagerPlain | 60-95 | 66 | same | fits | 4/5/0 | 0 |
+| hrManagerJob / hrGeneralist | 25-60 | 15 ⚠️ | adjacent | far_below | 0/5/4 | 0 |
+| hrManagerJob / projectManager | 5-40 | 12 | transferable | far_below | 0/5/4 | 0 |
 | accountantJob / accountant | 75-100 | 87 | same | fits | 8/2/0 | 0 |
-| accountantJob / hrManager | 0-25 | 3 | unrelated | fits | 1/1/6 | 0 |
-| projectManagerJob / projectManager | 75-100 | 83 | same | fits | 7/2/0 | 0 |
-| projectManagerJob / accountant | 0-35 | 13 | transferable | one_below | 1/4/5 | 0 |
-| frontendJob / juniorDev | 45-80 | 43 ⚠️ | same | one_below | 3/4/2 | 0 |
-| frontendJob / projectManager | 0-25 | 1 | unrelated | far_below | 0/2/5 | 0 |
+| accountantJob / hrManager | 0-25 | 3 | unrelated | far_below | 1/1/8 | 0 |
+| projectManagerJob / projectManager | 75-100 | 83 | same | fits | 8/1/1 | 0 |
+| projectManagerJob / accountant | 0-35 | 18 | transferable | one_below | 1/5/4 | 0 |
+| frontendJob / juniorDev | 45-80 | 38 ⚠️ | same | one_below | 2/5/2 | 0 |
+| frontendJob / projectManager | 0-25 | 4 | unrelated | far_below | 0/3/5 | 0 |
 
 ## 3. HR case: research and questions
 
 Resume: a real HR manager whose resume lists tasks only. Ad: does not mention business partnering or metrics.
 
 **What the engine found the role needs:**
-- ניהול מחלקה וצוות (in the ad, hidden)
-- דיני עבודה (in the ad, hidden)
-- יחסי עבודה (in the ad, hidden)
-- שימור עובדים (in the ad, absent)
-- שותפות עסקית עם ההנהלה (beyond the ad, absent)
-- מדדים ותוצאות (beyond the ad, absent)
-- הדרכה ופיתוח עובדים (beyond the ad, absent)
-- גיוס לתעשייה (beyond the ad, shown)
-- שכר, נוכחות ורווחה (beyond the ad, shown)
-- היקף אחריות וגודל ארגון (beyond the ad, shown)
+- ניהול מחלקה וצוות HR (in the ad, hidden)
+- x (beyond the ad, absent)
 
 **Questions it asked:**
-- יש לך עובדים שמדווחים אליך במחלקה, למשל רכז/ת או עוזר/ת? כמה?
-- יצא לך לעבוד ישירות מול ההנהלה על יעדים עסקיים או תכנון כוח אדם? אם כן, על מה?
-- עם אילו נושאי דיני עבודה או יחסי עבודה התמודדת בפועל? למשל שימועים, תלונות, התארגנות, עבודה מול עורך דין או משרד העבודה.
-- את מודדת משהו בתחום, כמו תחלופה, זמן גיוס או היקף גיוסים בשנה? יש מספר שזכור לך?
-- עשית משהו ספציפי לשימור עובדים, כמו סקרי שביעות רצון, שיחות עזיבה או תוכנית הוקרה? מה השתנה?
-- היית מעורבת בהכשרות, קליטת עובדים חדשים או פיתוח מנהלים בחברה?
-- בערך כמה עובדים גייסת בשנה בחברה הנוכחית, ולאילו סוגי תפקידים (ייצור, אדמיניסטרציה, הנדסה)?
 
 ## 4. HR case: writing
 
-**With the answers** (summary): מנהלת משאבי אנוש עם ניסיון מוכח בחברת ייצור תעשייתית (300 עובדים), הכוללת גיוס, שכר, נוכחות ורווחה, וליווי עובדים ומנהלים. שותפה להנהלה הבכירה בישיבות שבועיות ובתכנון כוח אדם, עם עבודה מבוססת מדדי תחלופה וזמן גיוס. בעלת תואר ראשון בניהול משאבי אנוש ומדעי ההתנהגות.
+**With the answers** (summary): מנהלת משאבי אנוש בחברת ייצור תעשייתית המונה 300 עובדים, עם תואר ראשון בניהול משאבי אנוש ומדעי ההתנהגות. ניסיון בגיוס לכל המחלקות, בטיפול בשכר, נוכחות ורווחה ובליווי עובדים ומנהלים, לצד רקע קודם בגיוס בחברת השמה לתעשייה ולוגיסטיקה.
 
 Most recent role:
-- אחריות על תחום משאבי האנוש בחברת ייצור, כולל גיוס לכלל המחלקות, שכר, נוכחות ורווחה
-- שותפה להנהלה: משתתפת בישיבות הנהלה שבועיות ועובדת צמוד עם המנכ"ל
-- בניית תוכנית גיוס לקו הייצור החדש יחד עם המנכ"ל
-- מדידת תחלופה וזמן גיוס והצגתם להנהלה אחת לרבעון; זמן הגיוס ירד מ-45 ל-30 יום בקירוב
+- אחריות על תחום משאבי האנוש בחברת ייצור בת 300 עובדים
+- גיוס עובדים לכל המחלקות בארגון
+- טיפול בשכר, נוכחות ורווחת העובדים
 - ליווי עובדים ומנהלים, כולל שימועים וסיום העסקה
 
-Honesty flags: גיוס והשמה (המיומנות הזו לא מופיעה בקורות החיים המקוריים); מדדי HR (המיומנות הזו לא מופיעה בקורות החיים המקוריים)
+Honesty flags: גיוס והשמה (המיומנות הזו לא מופיעה בקורות החיים המקוריים); עבודה בסביבת ייצור (המיומנות הזו לא מופיעה בקורות החיים המקוריים)
 
-**Without answers** (summary): מנהלת משאבי אנוש עם למעלה מ-7 שנות ניסיון בניהול תחום משאבי האנוש בחברת ייצור המונה 300 עובדים, ורקע קודם בגיוס לתעשייה ולוגיסטיקה. בעלת תואר ראשון בניהול משאבי אנוש ומדעי ההתנהגות. מתמחה בגיוס, ליווי מנהלים ועובדים, שכר ורווחה וטיפול בשימועים וסיום העסקה.
+**Without answers** (summary): מנהלת משאבי אנוש בחברת תעשיית מתכת המונה 300 עובדים, עם רקע קודם בגיוס לחברות תעשייה ולוגיסטיקה. אחראית על מכלול תחום משאבי האנוש: גיוס, שכר, נוכחות ורווחה, ליווי מנהלים ועובדים וטיפול בשימועים וסיום העסקה. בעלת תואר ראשון בניהול משאבי אנוש ומדעי ההתנהגות.
 
-Honesty flags: 7 (המספר הזה לא מופיע בקורות החיים המקוריים); גיוס וקליטה (המיומנות הזו לא מופיעה בקורות החיים המקוריים); רווחת עובדים (המיומנות הזו לא מופיעה בקורות החיים המקוריים)
+Honesty flags: none
