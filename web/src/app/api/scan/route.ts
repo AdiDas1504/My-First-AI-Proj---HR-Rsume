@@ -8,6 +8,7 @@ import { takeRateLimit } from "@/lib/rate-limit";
 import { getClientIp, getDeviceId } from "@/lib/session";
 import { getStore } from "@/lib/store";
 import { config } from "@/lib/config";
+import { privateKey, schedulePurge } from "@/lib/privacy";
 
 export const maxDuration = 60;
 
@@ -26,12 +27,16 @@ export async function POST(req: Request) {
     let previous = null;
     if (!ent.active) {
       if (!deviceId) throw new UserError("הדפדפן חוסם עוגיות. אפשרו עוגיות ונסו שוב.");
-      previous = await store.findFreeScan({ phone: user.phone, deviceId });
+      previous = await store.findFreeScan({ phones: [privateKey(user.phone), user.phone], deviceId });
+      // Rows saved before hashing: replace the plain number and IP with their keys.
+      if (previous && !previous.phone.startsWith("h1:")) {
+        await store.rekeyFreeScan(previous.id, privateKey(previous.phone), privateKey(previous.ip));
+      }
       if (config.freeScanLimits) {
         if (previous) {
           throw new UserError("הבדיקה החינמית כבר נוצלה. כדי לקבל את הדוח המלא וגרסה מותאמת, אפשר להתחיל בשבוע היכרות.", 402);
         }
-        if (!(await takeRateLimit(`scan:ip:${ip}`, 3, 24 * 60))) {
+        if (!(await takeRateLimit(`scan:ip:${privateKey(ip)}`, 3, 24 * 60))) {
           throw new UserError("הגעתם למספר הבדיקות החינמיות מהרשת הזו היום.", 429);
         }
       } else if (!(await takeRateLimit(`scan:user:${user.id}`, 10, 24 * 60))) {
@@ -54,13 +59,14 @@ export async function POST(req: Request) {
       await store.addFreeScan({
         id: randomUUID(),
         userId: user.id,
-        phone: user.phone,
+        phone: privateKey(user.phone),
         deviceId: deviceId!,
-        ip,
+        ip: privateKey(ip),
         createdAt: new Date().toISOString(),
       });
     }
     await store.addUsage(user.id, "scan");
+    schedulePurge();
     return Response.json({ ok: true, result, subscriber: ent.active });
   } catch (err) {
     return errorResponse(err);

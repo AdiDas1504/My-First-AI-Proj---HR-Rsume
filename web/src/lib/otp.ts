@@ -4,6 +4,7 @@ import { config, demo, demoShortcutsAllowed } from "./config";
 import { getStore } from "./store";
 import { sendLoginCode } from "./sms";
 import { takeRateLimit } from "./rate-limit";
+import { privateKey } from "./privacy";
 import type { User } from "./types";
 
 const CODE_TTL_MIN = 5;
@@ -22,10 +23,10 @@ export async function requestLoginCode(phone: string, ip: string): Promise<SendR
     console.error("SMS provider is not configured in production; refusing to issue login codes.");
     return { ok: false, error: "הכניסה זמנית לא זמינה. נסו שוב מאוחר יותר." };
   }
-  if (!(await takeRateLimit(`otp:phone:${phone}`, 3, 15))) {
+  if (!(await takeRateLimit(`otp:phone:${privateKey(phone)}`, 3, 15))) {
     return { ok: false, error: "נשלחו כבר כמה קודים למספר הזה. נסו שוב בעוד רבע שעה." };
   }
-  if (!(await takeRateLimit(`otp:ip:${ip}`, 10, 60))) {
+  if (!(await takeRateLimit(`otp:ip:${privateKey(ip)}`, 10, 60))) {
     return { ok: false, error: "יותר מדי בקשות מהרשת הזו. נסו שוב מאוחר יותר." };
   }
   const code = String(randomInt(0, 1_000_000)).padStart(6, "0");

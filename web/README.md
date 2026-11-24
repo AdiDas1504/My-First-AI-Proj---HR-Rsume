@@ -55,3 +55,14 @@ npm run build
    - Check the brand name and domain are available.
 
 Production safety: if the site runs in production without a real SMS or payment provider, login and checkout refuse to work, so demo shortcuts can't leak. `DEMO_MODE=1` overrides this; use it only for a private preview, and always together with `PREVIEW_PASSWORD`, which puts the whole site behind a browser password prompt.
+
+## Quality evaluation
+
+`web/eval` contains fictional resumes and job postings with the score band each pair should land in, plus an HR case that checks role research, questions, use of the candidate's answers and invented facts.
+
+```bash
+cd web
+ANTHROPIC_API_KEY=... npm run eval          # report in eval/results/latest.md
+```
+
+On GitHub: add the repository secret `ANTHROPIC_API_KEY`, then run the "Quality evaluation" workflow (Actions tab) or push to the `run-eval` branch. The report is saved to the `eval-results` branch.

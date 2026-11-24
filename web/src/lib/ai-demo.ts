@@ -4,7 +4,7 @@ import type { JobInput } from "./extract";
 import { hebrewRatio } from "./honesty";
 import { computeScore, potentialScore, rankGaps } from "./scoring";
 import type { Analysis, Requirement, ScanResult, TailoredResume } from "./types";
-import type { TailorOutput } from "./ai";
+import type { AnalyzeOutput, CandidateAnswer, TailorOutput } from "./ai";
 
 /**
  * Offline fallback used when no ANTHROPIC_API_KEY is configured, so the whole
@@ -85,14 +85,50 @@ export function demoScan(resumeText: string, job: JobInput): ScanResult {
   };
 }
 
-export function demoTailor(resumeText: string, job: JobInput, language: "auto" | "he" | "en"): TailorOutput {
+export function demoAnalyze(resumeText: string, job: JobInput): AnalyzeOutput {
   const text = jobText(job);
-  const requirements = extractRequirements(text, resumeText);
+  const requirements = extractRequirements(text, resumeText).map((r) => ({ ...r, kind: "skill" as const }));
+  const gaps = rankGaps(requirements);
+  return {
+    analysis: {
+      jobTitle: titleOf(text),
+      company: "",
+      language: "he",
+      score: computeScore(requirements),
+      summary: "מצב הדגמה: הניתוח מבוסס על חפיפת מילים בלבד. עם חיבור ל-AI המנוע גם בודק מה נדרש בתפקיד כזה מעבר למודעה.",
+      requirements,
+      strengths: requirements.filter((r) => r.status === "met").map((r) => r.text).slice(0, 4),
+      insights: gaps.slice(0, 4).map((g) => ({
+        topic: g.text.slice(0, 60),
+        source: "posting" as const,
+        resumeStatus: g.status === "partial" ? ("hidden" as const) : ("absent" as const),
+        evidence: "",
+        why: "מופיע בדרישות המשרה.",
+      })),
+      scoreVersion: 2,
+    },
+    questions: gaps.slice(0, 3).map((g, i) => ({
+      id: `q${i + 1}`,
+      topic: g.text.slice(0, 40),
+      question: `יש לך ניסיון שקשור ל"${g.text.slice(0, 80)}"? אם כן, ספרו במשפט או שניים מה עשית ובאיזה היקף.`,
+      why: "אם זה נכון, נוכל להבליט את זה בקורות החיים.",
+    })),
+  };
+}
+
+export function demoTailor(
+  resumeText: string,
+  job: JobInput,
+  language: "auto" | "he" | "en",
+  prep: { analysis: Analysis; answers: CandidateAnswer[] },
+): TailorOutput {
+  jobText(job);
   const lines = resumeText.split("\n").map((l) => l.trim()).filter(Boolean);
   const lang: "he" | "en" = language === "auto" ? (hebrewRatio(resumeText) > 0.3 ? "he" : "en") : language;
   const email = resumeText.match(/[\w.+-]+@[\w-]+\.[\w.]+/)?.[0] ?? "";
   const phone = resumeText.match(/(?:\+972|0)5\d[- ]?\d{3}[- ]?\d{4}/)?.[0] ?? "";
   const bullets = lines.filter((l) => l.length > 40).slice(0, 6);
+  const answered = prep.answers.filter((a) => a.answer.trim());
 
   const resume: TailoredResume = {
     language: lang,
@@ -107,7 +143,7 @@ export function demoTailor(resumeText: string, job: JobInput, language: "auto" |
         location: "",
         start: "",
         end: "",
-        bullets: bullets.slice(1),
+        bullets: [...bullets.slice(1), ...answered.map((a) => a.answer.trim().slice(0, 140))],
       },
     ],
     education: [],
@@ -116,23 +152,15 @@ export function demoTailor(resumeText: string, job: JobInput, language: "auto" |
     certifications: [],
   };
 
-  const analysis: Analysis = {
-    jobTitle: titleOf(text),
-    company: "",
-    language: lang,
-    score: computeScore(requirements),
-    summary: "מצב הדגמה: הניתוח מבוסס על חפיפת מילים בלבד, וקורות החיים לא שוכתבו. חברו מפתח API של Claude כדי לקבל שכתוב אמיתי.",
-    requirements,
-    strengths: requirements.filter((r) => r.status === "met").map((r) => r.text).slice(0, 4),
-  };
-
   return {
-    analysis,
     resume,
-    addOnlyIfTrue: requirements
+    addOnlyIfTrue: prep.analysis.requirements
       .filter((r) => r.status === "missing")
       .map((r) => ({ requirement: r.text, suggestion: "אם יש לך ניסיון כזה, תארו אותו בשורה אחת עם הקשר ותוצאה." })),
-    changeLog: ["מצב הדגמה: התוכן הועתק מקורות החיים המקוריים ללא שכתוב."],
+    changeLog: [
+      "מצב הדגמה: התוכן הועתק מקורות החיים המקוריים ללא שכתוב.",
+      ...(answered.length ? [`נוספו ${answered.length} פרטים מהתשובות שלך.`] : []),
+    ],
   };
 }
 

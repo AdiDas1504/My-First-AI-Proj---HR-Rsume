@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { normalizeIsraeliMobile, maskPhone } from "../src/lib/phone";
 import { computeScore, potentialScore, rankGaps } from "../src/lib/scoring";
 import { checkHonesty, newNumbers } from "../src/lib/honesty";
+import { verifyRequirements } from "../src/lib/evidence";
 import { canPurchase, computeEntitlement, periodFrom, usageWindowStart } from "../src/lib/entitlement";
 import { safeNext } from "../src/lib/safe-next";
 import type { Subscription, TailoredResume } from "../src/lib/types";
@@ -22,36 +23,122 @@ describe("phone", () => {
   });
 });
 
-describe("scoring", () => {
-  it("weighs must-haves double and partial as half", () => {
-    expect(
-      computeScore([
-        { importance: "must", status: "met" },
-        { importance: "must", status: "partial" },
-        { importance: "nice", status: "missing" },
-      ]),
-    ).toBe(Math.round(((2 + 1 + 0) / 5) * 100));
+type R = { importance: "must" | "nice"; status: "met" | "partial" | "missing"; kind?: "core" | "skill" | "credential" | "soft" };
+const req = (kind: R["kind"], importance: R["importance"], status: R["status"]): R => ({ kind, importance, status });
+
+describe("scoring v2", () => {
+  it("weighs the role's core most and partial well under half", () => {
+    // core must met (3) + skill must partial (2 x 0.4) + soft nice missing (0.25 x 0)
+    expect(computeScore([req("core", "must", "met"), req("skill", "must", "partial"), req("soft", "nice", "missing")])).toBe(
+      Math.round(((3 + 0.8) / (3 + 2 + 0.25)) * 100),
+    );
   });
   it("is 0 with no requirements", () => {
     expect(computeScore([])).toBe(0);
   });
+  it("caps the score when a core must-have is missing", () => {
+    const one = [req("core", "must", "missing"), ...Array(6).fill(req("skill", "must", "met"))];
+    expect(computeScore(one)).toBeLessThanOrEqual(55);
+    const two = [req("core", "must", "missing"), req("core", "must", "missing"), ...Array(8).fill(req("skill", "must", "met"))];
+    expect(computeScore(two)).toBeLessThanOrEqual(35);
+  });
+  it("caps the score when a required credential is missing", () => {
+    expect(computeScore([req("credential", "must", "missing"), ...Array(6).fill(req("core", "must", "met"))])).toBeLessThanOrEqual(60);
+  });
+  it("lowers the score for a different role or a big seniority gap", () => {
+    const reqs = [req("core", "must", "met"), req("skill", "must", "met"), req("skill", "nice", "partial")];
+    const same = computeScore(reqs, { roleAlignment: "same", seniority: "fits" });
+    expect(computeScore(reqs, { roleAlignment: "adjacent", seniority: "one_below" })).toBeLessThan(same);
+    expect(computeScore(reqs, { roleAlignment: "unrelated", seniority: "far_below" })).toBeLessThan(40);
+  });
+  it("spreads realistic candidates for an HR manager job far apart", () => {
+    const hrManager = computeScore(
+      [
+        req("core", "must", "met"), // people management
+        req("core", "must", "met"), // HR strategy / business partnering
+        req("core", "must", "met"), // 5+ years in HR management
+        req("skill", "must", "met"), // labor law
+        req("skill", "nice", "partial"), // HRIS
+        req("credential", "nice", "met"), // degree in behavioral sciences
+      ],
+      { roleAlignment: "same", seniority: "fits" },
+    );
+    const hrGeneralist = computeScore(
+      [
+        req("core", "must", "partial"),
+        req("core", "must", "partial"),
+        req("core", "must", "missing"),
+        req("skill", "must", "met"),
+        req("skill", "nice", "met"),
+        req("credential", "nice", "met"),
+      ],
+      { roleAlignment: "adjacent", seniority: "one_below" },
+    );
+    const accountant = computeScore(
+      [
+        req("core", "must", "missing"),
+        req("core", "must", "missing"),
+        req("core", "must", "missing"),
+        req("skill", "must", "missing"),
+        req("skill", "nice", "partial"),
+        req("credential", "nice", "missing"),
+        req("soft", "must", "met"),
+      ],
+      { roleAlignment: "unrelated", seniority: "fits" },
+    );
+    expect(hrManager).toBeGreaterThanOrEqual(85);
+    expect(hrGeneralist).toBeGreaterThan(25);
+    expect(hrGeneralist).toBeLessThan(60);
+    expect(accountant).toBeLessThanOrEqual(15);
+    expect(hrManager - accountant).toBeGreaterThan(65);
+  });
   it("potential score only lifts wording gaps, never missing ones", () => {
     const reqs = [
-      { importance: "must" as const, status: "met" as const, gapType: "none" },
-      { importance: "must" as const, status: "partial" as const, gapType: "phrasing" },
-      { importance: "must" as const, status: "missing" as const, gapType: "missing" },
+      { ...req("skill", "must", "met"), gapType: "none" },
+      { ...req("skill", "must", "partial"), gapType: "phrasing" },
+      { ...req("skill", "must", "missing"), gapType: "missing" },
     ];
-    expect(computeScore(reqs)).toBe(50);
+    expect(computeScore(reqs)).toBe(47);
     expect(potentialScore(reqs)).toBe(67);
   });
-  it("ranks missing must-haves first and drops met", () => {
+  it("ranks the heaviest gaps first and drops met", () => {
     const ranked = rankGaps([
-      { importance: "nice" as const, status: "missing" as const, id: "a" },
-      { importance: "must" as const, status: "partial" as const, id: "b" },
-      { importance: "must" as const, status: "missing" as const, id: "c" },
-      { importance: "must" as const, status: "met" as const, id: "d" },
+      { ...req("skill", "nice", "missing"), id: "a" },
+      { ...req("skill", "must", "partial"), id: "b" },
+      { ...req("core", "must", "missing"), id: "c" },
+      { ...req("core", "must", "met"), id: "d" },
     ]);
     expect(ranked.map((r) => r.id)).toEqual(["c", "b", "a"]);
+  });
+});
+
+describe("evidence check", () => {
+  const resume = `נועה לוי
+מנהלת משאבי אנוש, חברת אופק בע"מ, 2019-2024
+- ניהלתי צוות של 4 רכזות גיוס ושכר
+- הובלתי את תהליך הקליטה וההכשרה לעובדים חדשים
+- Built HR dashboards in Power BI`;
+
+  it("keeps requirements whose quote is really in the resume", () => {
+    const [r] = verifyRequirements([{ text: "ניהול צוות", importance: "must", status: "met", evidence: "ניהלתי צוות של 4 רכזות גיוס" }], resume);
+    expect(r.status).toBe("met");
+    expect(r.verified).toBe(true);
+  });
+  it("tolerates Hebrew prefixes and small wording differences", () => {
+    const [r] = verifyRequirements([{ text: "קליטה", importance: "must", status: "met", evidence: "הובלתי תהליך קליטה והכשרה של עובדים חדשים" }], resume);
+    expect(r.verified).toBe(true);
+  });
+  it("lowers the status when the quote is invented", () => {
+    const out = verifyRequirements(
+      [
+        { text: "ROI", importance: "must", status: "met", evidence: "מדדתי ROI של תוכניות רווחה וחסכתי 2 מיליון" },
+        { text: "BP", importance: "nice", status: "partial", evidence: "שותפה עסקית להנהלה הבכירה" },
+        { text: "none", importance: "nice", status: "missing", evidence: "something" },
+      ],
+      resume,
+    );
+    expect(out.map((r) => r.status)).toEqual(["partial", "missing", "missing"]);
+    expect(out[2].evidence).toBe("");
   });
 });
 

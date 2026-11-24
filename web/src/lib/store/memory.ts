@@ -2,13 +2,14 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from "node:fs";
 import path from "node:path";
-import type { Store, FreeScanRecord, DocumentSummary, DraftSummary } from "./types";
+import type { Store, FreeScanRecord, DocumentSummary, DraftSummary, PurgeCutoffs } from "./types";
 import type {
   BuilderDraft,
   OtpChallenge,
   Payment,
   Subscription,
   TailorDocument,
+  TailorSession,
   UsageKind,
   User,
 } from "../types";
@@ -22,6 +23,7 @@ type Data = {
   usage: { userId: string; kind: UsageKind; createdAt: string }[];
   documents: TailorDocument[];
   drafts: BuilderDraft[];
+  sessions: TailorSession[];
   payments: Payment[];
 };
 
@@ -34,6 +36,7 @@ const empty = (): Data => ({
   usage: [],
   documents: [],
   drafts: [],
+  sessions: [],
   payments: [],
 });
 
@@ -80,6 +83,7 @@ export class MemoryStore implements Store {
     d.subscriptions = d.subscriptions.filter((s) => s.userId !== userId);
     d.documents = d.documents.filter((x) => x.userId !== userId);
     d.drafts = d.drafts.filter((x) => x.userId !== userId);
+    d.sessions = d.sessions.filter((x) => x.userId !== userId);
     d.usage = d.usage.filter((x) => x.userId !== userId);
     // Free-scan and payment records are kept (anti-abuse and accounting duties),
     // but detached from the deleted account.
@@ -123,8 +127,13 @@ export class MemoryStore implements Store {
     this.save();
   }
 
-  async findFreeScan(by: { phone: string; deviceId: string }) {
-    return this.data.freeScans.find((f) => f.phone === by.phone || f.deviceId === by.deviceId) ?? null;
+  async findFreeScan(by: { phones: string[]; deviceId: string }) {
+    return this.data.freeScans.find((f) => by.phones.includes(f.phone) || f.deviceId === by.deviceId) ?? null;
+  }
+  async rekeyFreeScan(id: string, phone: string, ip: string) {
+    const f = this.data.freeScans.find((x) => x.id === id);
+    if (f) Object.assign(f, { phone, ip });
+    this.save();
   }
   async addFreeScan(record: FreeScanRecord) {
     this.data.freeScans.push(record);
@@ -196,6 +205,37 @@ export class MemoryStore implements Store {
   async deleteDraft(userId: string, id: string) {
     this.data.drafts = this.data.drafts.filter((d) => !(d.id === id && d.userId === userId));
     this.save();
+  }
+
+  async createSession(session: TailorSession) {
+    this.data.sessions.push(session);
+    this.save();
+  }
+  async getSession(userId: string, id: string) {
+    return this.data.sessions.find((x) => x.id === id && x.userId === userId) ?? null;
+  }
+  async updateSession(session: TailorSession) {
+    const i = this.data.sessions.findIndex((x) => x.id === session.id && x.userId === session.userId);
+    if (i >= 0) this.data.sessions[i] = session;
+    this.save();
+  }
+
+  async purgeExpired(c: PurgeCutoffs) {
+    const d = this.data;
+    const before = { documents: d.documents.length, drafts: d.drafts.length, sessions: d.sessions.length, otps: d.otps.length, rateEvents: d.rateEvents.length };
+    d.documents = d.documents.filter((x) => x.updatedAt >= c.documents);
+    d.drafts = d.drafts.filter((x) => x.updatedAt >= c.drafts);
+    d.sessions = d.sessions.filter((x) => x.createdAt >= c.sessions);
+    d.otps = d.otps.filter((x) => x.expiresAt >= c.otps);
+    d.rateEvents = d.rateEvents.filter((x) => x.createdAt >= c.rateEvents);
+    this.save();
+    return {
+      documents: before.documents - d.documents.length,
+      drafts: before.drafts - d.drafts.length,
+      sessions: before.sessions - d.sessions.length,
+      otps: before.otps - d.otps.length,
+      rateEvents: before.rateEvents - d.rateEvents.length,
+    };
   }
 
   async addPayment(payment: Payment) {

@@ -6,10 +6,11 @@ import { UserError } from "./errors";
 import type { JobInput } from "./extract";
 import { computeScore, potentialScore, rankGaps } from "./scoring";
 import { newNumbers } from "./honesty";
+import { verifyRequirements } from "./evidence";
 import { describeAiError } from "./ai-errors";
 import { rejectsForcedToolUse, thinkingFor, toStrictSchema } from "./ai-request";
-import type { AddOnlyIfTrue, Analysis, ScanResult, TailoredResume } from "./types";
-import { demoCoverLetter, demoScan, demoTailor } from "./ai-demo";
+import type { AddOnlyIfTrue, Analysis, RoleInsight, ScanResult, TailoredResume, TailorQuestion } from "./types";
+import { demoAnalyze, demoCoverLetter, demoScan, demoTailor } from "./ai-demo";
 
 /* ---------- shared rules (ported from the original Python project) ---------- */
 
@@ -25,8 +26,22 @@ Absolute rules:
 6. Evaluate requirements strictly from evidence in the resume. "met" needs clear evidence, "partial" needs related but weaker evidence, otherwise "missing".
 `.trim();
 
+/** One rubric for the free check and the full analysis, so their scores agree. */
+export const ASSESSMENT_RULES = `
+How to assess fit. Think like a senior recruiter screening candidates for THIS exact role:
+- requirements: the 6-12 requirements that really separate strong candidates for this role: central responsibilities, years or level in the function, domain or industry, professional knowledge, systems and tools, and credentials the posting explicitly asks for. Merge duplicates. Skip generic soft skills (communication, teamwork, motivation) unless the posting stresses them, and list at most 2 of those.
+  kind: "core" = the role's central function or responsibility, required years in the role, or required domain; "skill" = professional knowledge, method, system or tool; "credential" = a degree, license or certification the posting asks for; "soft" = an interpersonal trait.
+  importance: "must" = required, essential or clearly central; "nice" = an advantage or preferred.
+- status, strictly from the resume: "met" = shown directly, at a comparable scope and level; "partial" = only related evidence, a smaller scope, or transferable from a different context; "missing" = no real evidence. Generic overlap is not evidence: working with people is not people management, using Excel is not financial modeling, attending meetings is not leading them.
+- evidence: copy a short EXACT quote (3-15 words) from the resume that proves the status, word for word. Empty string when missing. Never paraphrase: quotes that are not found in the resume are discarded and the status is lowered.
+- roleAlignment: "same" = the candidate already does this role (also in another company or industry); "adjacent" = a neighbouring role in the same function (HR generalist -> HR manager, recruiter -> HR business partner, bookkeeper -> accountant); "transferable" = another function with real overlap (operations manager -> HR manager); "unrelated" = little professional overlap.
+- seniority: "fits"; "above" = clearly more senior than needed; "one_below" = one step short (specialist applying for manager); "far_below" = far from the level or years asked (junior applying for head of department).
+- Judge every resume and job on their own. Strong fits and poor fits must look clearly different; never drift toward a middle assessment.
+`.trim();
+
 const requirementSchema = z.object({
   text: z.string(),
+  kind: z.enum(["core", "skill", "credential", "soft"]).default("skill"),
   importance: z.enum(["must", "nice"]),
   status: z.enum(["met", "partial", "missing"]),
   evidence: z.string().default(""),
@@ -36,11 +51,25 @@ const requirementJson = {
   type: "object",
   properties: {
     text: { type: "string", description: "The requirement, short, in the job posting's language" },
+    kind: { type: "string", enum: ["core", "skill", "credential", "soft"] },
     importance: { type: "string", enum: ["must", "nice"] },
     status: { type: "string", enum: ["met", "partial", "missing"] },
-    evidence: { type: "string", description: "Short quote/paraphrase from the resume supporting the status; empty if missing" },
+    evidence: { type: "string", description: "Exact quote copied word for word from the resume (3-15 words) proving the status; empty string if missing" },
   },
-  required: ["text", "importance", "status", "evidence"],
+  required: ["text", "kind", "importance", "status", "evidence"],
+} as const;
+
+const str = { type: "string" } as const;
+const strArr = { type: "array", items: str } as const;
+
+const fitSchema = {
+  roleAlignment: z.enum(["same", "adjacent", "transferable", "unrelated"]).default("same"),
+  seniority: z.enum(["fits", "above", "one_below", "far_below"]).default("fits"),
+};
+
+const fitJson = {
+  roleAlignment: { type: "string", enum: ["same", "adjacent", "transferable", "unrelated"] },
+  seniority: { type: "string", enum: ["fits", "above", "one_below", "far_below"] },
 } as const;
 
 /* ---------- client ---------- */
@@ -68,6 +97,8 @@ export async function callTool<T>(opts: {
   tool: { name: string; description: string; input_schema: Record<string, unknown> };
   schema: z.ZodType<T>;
   maxTokens: number;
+  /** Only applied when extended thinking is off (it requires the default temperature). */
+  temperature?: number;
 }): Promise<T> {
   const auto = rejectsForcedToolUse(opts.model);
   const tool = (
@@ -88,7 +119,7 @@ export async function callTool<T>(opts: {
         system,
         tools: [tool],
         tool_choice: auto ? { type: "auto" } : { type: "tool", name: opts.tool.name },
-        ...(thinking ? { thinking } : {}),
+        ...(thinking ? { thinking } : opts.temperature !== undefined ? { temperature: opts.temperature } : {}),
         messages: [{ role: "user", content: opts.content }],
       });
     } catch (err) {
@@ -123,6 +154,7 @@ const scanSchema = z.object({
   company: z.string().default(""),
   verdict: z.string(),
   strengths: z.array(z.string()).default([]),
+  ...fitSchema,
   requirements: z
     .array(
       requirementSchema.extend({
@@ -154,13 +186,15 @@ export async function runScan(resumeText: string, job: JobInput): Promise<ScanRe
   if (demo.ai) return demoScan(resumeText, job);
   const out = await callTool({
     model: config.modelScan,
-    maxTokens: 3000,
+    maxTokens: 3500,
+    temperature: 0,
     system: `${HONESTY_RULES}
+
+${ASSESSMENT_RULES}
 
 ${USER_VOICE}
 
 Task: a quick fit check that shows the candidate what tailoring would do for them.
-- List the job's 6-12 most important requirements and assess each against the resume.
 - For every requirement that is not "met", set gapType:
   "phrasing" = the resume contains real, related experience that is under-stated, buried or worded differently, so better wording alone would show it;
   "missing" = the resume has no real evidence for it.
@@ -184,6 +218,7 @@ Task: a quick fit check that shows the candidate what tailoring would do for the
             items: { type: "string" },
             description: "Hebrew, second person, 2-3 short points that already make the candidate relevant, each grounded in the resume",
           },
+          ...fitJson,
           requirements: {
             type: "array",
             items: {
@@ -207,16 +242,18 @@ Task: a quick fit check that shows the candidate what tailoring would do for the
             ],
           },
         },
-        required: ["jobTitle", "company", "verdict", "strengths", "requirements", "sampleRewrite"],
+        required: ["jobTitle", "company", "verdict", "strengths", "roleAlignment", "seniority", "requirements", "sampleRewrite"],
       },
     },
     schema: scanSchema,
   });
 
-  const reqs = out.requirements.map((r) => ({
+  const ctx = { roleAlignment: out.roleAlignment, seniority: out.seniority };
+  const reqs = verifyRequirements(out.requirements, resumeText).map((r) => ({
     ...r,
-    // A "met" requirement can't be a gap; a non-met one without a type is treated as missing.
-    gapType: r.status === "met" ? ("none" as const) : r.gapType === "none" ? ("missing" as const) : r.gapType,
+    // A "met" requirement can't be a gap. A non-met one without a type: related evidence
+    // means wording, no evidence means missing.
+    gapType: r.status === "met" ? ("none" as const) : r.gapType !== "none" ? r.gapType : r.status === "partial" ? ("phrasing" as const) : ("missing" as const),
   }));
   const gaps = rankGaps(reqs);
   const sample = out.sampleRewrite;
@@ -229,8 +266,8 @@ Task: a quick fit check that shows the candidate what tailoring would do for the
   return {
     jobTitle: out.jobTitle,
     company: out.company,
-    score: computeScore(reqs),
-    potentialScore: potentialScore(reqs),
+    score: computeScore(reqs, ctx),
+    potentialScore: potentialScore(reqs, ctx),
     verdict: out.verdict,
     strengths: out.strengths.slice(0, 3),
     phrasingGapCount: gaps.filter((g) => g.gapType === "phrasing").length,
@@ -241,7 +278,135 @@ Task: a quick fit check that shows the candidate what tailoring would do for the
   };
 }
 
-/* ---------- full tailoring ---------- */
+/* ---------- full analysis: research the role, then ask before writing ---------- */
+
+const analyzeSchema = z.object({
+  jobTitle: z.string(),
+  company: z.string().default(""),
+  summary: z.string(),
+  strengths: z.array(z.string()).default([]),
+  ...fitSchema,
+  requirements: z.array(requirementSchema).min(1),
+  insights: z
+    .array(
+      z.object({
+        topic: z.string(),
+        source: z.enum(["posting", "role"]),
+        resumeStatus: z.enum(["shown", "hidden", "absent"]),
+        evidence: z.string().default(""),
+        why: z.string().default(""),
+      }),
+    )
+    .default([]),
+  questions: z.array(z.object({ topic: z.string(), question: z.string(), why: z.string().default("") })).default([]),
+});
+
+export const ROLE_RESEARCH_RULES = `
+Role research. This is what makes the result sharp instead of generic: a hiring manager reads a resume against what the ROLE needs, not only against the ad.
+- insights: 6-10 things employers in Israel typically look for in THIS role and in closely related roles at this level. Include the posting's key points AND at least 3 expectations the posting does not state but hiring managers for this role usually check. Example for an HR manager: direct people management; acting as a business partner to management and aligning HR with business goals; measuring HR impact (ROI, KPIs such as turnover, time-to-hire, engagement); employee relations and labor law; recruitment strategy; training and development; retention and culture. Use the profession's real terminology.
+  source: "posting" if it is written in the ad, "role" if it is a typical expectation that the ad does not state.
+  resumeStatus: "shown" = clearly in the resume; "hidden" = there but buried, vague or under-stated; "absent" = not in the resume.
+  evidence: exact quote from the resume when shown or hidden, else an empty string.
+  why: Hebrew, one short sentence in second person on why it matters for this role.
+- questions: 3-7 questions to ask the candidate BEFORE writing, in Hebrew, second person, one topic each, most impactful first. Ask about hidden or absent items that are plausible given their background, and about missing scope or results that would make real experience stronger (team size, budget, volumes, numbers, what changed). Ask for concrete facts (what, how many, what was the result) and never lead them toward claiming something. Do not ask about what is already clear in the resume, or about things far outside their background.
+  topic: a short Hebrew label; why: Hebrew, one short sentence on how the answer helps the resume.
+`.trim();
+
+export type AnalyzeOutput = { analysis: Analysis; questions: TailorQuestion[] };
+
+export async function runAnalyze(resumeText: string, job: JobInput): Promise<AnalyzeOutput> {
+  if (demo.ai) return demoAnalyze(resumeText, job);
+  const out = await callTool({
+    model: config.modelTailor,
+    maxTokens: 7000,
+    system: `${HONESTY_RULES}
+
+${ASSESSMENT_RULES}
+
+${ROLE_RESEARCH_RULES}
+
+${USER_VOICE}
+
+Task: analyze the fit between the resume and the job, research what the role really needs, and prepare questions for the candidate. Do not write the resume yet.
+- summary: Hebrew, 2-3 sentences, honest overall fit and the main opportunity.
+- strengths: Hebrew, 3-5 strongest points of fit, each grounded in the resume.`,
+    content: [{ type: "text", text: `<resume>\n${resumeText}\n</resume>` }, ...jobContent(job)],
+    tool: {
+      name: "report_analysis",
+      description: "Report the fit analysis, the role research and the questions for the candidate",
+      input_schema: {
+        type: "object",
+        properties: {
+          jobTitle: str,
+          company: { type: "string", description: "Empty string if unknown" },
+          summary: str,
+          strengths: strArr,
+          ...fitJson,
+          requirements: { type: "array", items: requirementJson },
+          insights: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                topic: str,
+                source: { type: "string", enum: ["posting", "role"] },
+                resumeStatus: { type: "string", enum: ["shown", "hidden", "absent"] },
+                evidence: str,
+                why: str,
+              },
+              required: ["topic", "source", "resumeStatus", "evidence", "why"],
+            },
+          },
+          questions: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: { topic: str, question: str, why: str },
+              required: ["topic", "question", "why"],
+            },
+          },
+        },
+        required: ["jobTitle", "company", "summary", "strengths", "roleAlignment", "seniority", "requirements", "insights", "questions"],
+      },
+    },
+    schema: analyzeSchema,
+  });
+  return finishAnalysis(out, resumeText);
+}
+
+/** Verify the AI's quotes against the resume, then compute the score. */
+function finishAnalysis(out: z.infer<typeof analyzeSchema>, resumeText: string): AnalyzeOutput {
+  const requirements = verifyRequirements(out.requirements, resumeText);
+  const index = verifyRequirements(
+    out.insights.map((i) => ({ text: i.topic, importance: "nice" as const, status: i.resumeStatus === "absent" ? ("missing" as const) : ("met" as const), evidence: i.evidence })),
+    resumeText,
+  );
+  const insights: RoleInsight[] = out.insights.slice(0, 10).map((i, n) => ({
+    ...i,
+    // An unverifiable quote means we can't claim it is visible in the resume.
+    resumeStatus: i.resumeStatus === "shown" && !index[n].verified ? "hidden" : i.resumeStatus,
+    evidence: index[n].verified ? i.evidence : "",
+  }));
+  const ctx = { roleAlignment: out.roleAlignment, seniority: out.seniority };
+  return {
+    analysis: {
+      jobTitle: out.jobTitle,
+      company: out.company,
+      language: "he",
+      score: computeScore(requirements, ctx),
+      summary: out.summary,
+      requirements,
+      strengths: out.strengths.slice(0, 5),
+      roleAlignment: out.roleAlignment,
+      seniority: out.seniority,
+      insights,
+      scoreVersion: 2,
+    },
+    questions: out.questions.slice(0, 7).map((q, n) => ({ id: `q${n + 1}`, ...q })),
+  };
+}
+
+/* ---------- writing the tailored resume ---------- */
 
 const experienceSchema = z.object({
   title: z.string(),
@@ -280,18 +445,10 @@ export const resumeSchema = z.object({
 });
 
 const tailorSchema = z.object({
-  jobTitle: z.string(),
-  company: z.string().default(""),
-  summary: z.string(),
-  strengths: z.array(z.string()),
-  requirements: z.array(requirementSchema).min(1),
   resume: resumeSchema,
   addOnlyIfTrue: z.array(z.object({ requirement: z.string(), suggestion: z.string() })),
   changeLog: z.array(z.string()),
 });
-
-const str = { type: "string" } as const;
-const strArr = { type: "array", items: str } as const;
 
 export const resumeJsonSchema = {
   type: "object",
@@ -337,56 +494,80 @@ export const resumeJsonSchema = {
 };
 
 export type TailorOutput = {
-  analysis: Analysis;
   resume: TailoredResume;
   addOnlyIfTrue: AddOnlyIfTrue[];
   changeLog: string[];
 };
 
+export type CandidateAnswer = { topic: string; question: string; answer: string };
+
+/** The candidate's answers, as source text for writing and for the honesty check. */
+export function answersToSource(answers: CandidateAnswer[]): string {
+  const real = answers.filter((a) => a.answer.trim());
+  if (!real.length) return "";
+  return `תשובות המועמד לשאלות ההמשך:\n${real.map((a) => `- ${a.question}\n  ${a.answer.trim()}`).join("\n")}`;
+}
+
 export async function runTailor(
   resumeText: string,
   job: JobInput,
   language: "auto" | "he" | "en",
+  prep: { analysis: Analysis; answers: CandidateAnswer[] },
 ): Promise<TailorOutput> {
-  if (demo.ai) return demoTailor(resumeText, job, language);
+  if (demo.ai) return demoTailor(resumeText, job, language, prep);
 
   const languageRule =
     language === "auto"
       ? "Write the tailored resume in the job posting's language. If that differs from the resume's language, translate faithfully without adding anything."
       : `Write the tailored resume in ${language === "he" ? "Hebrew" : "English"}, translating faithfully if needed without adding anything.`;
 
+  const a = prep.analysis;
+  const research = {
+    jobTitle: a.jobTitle,
+    roleAlignment: a.roleAlignment,
+    seniority: a.seniority,
+    requirements: a.requirements.map((r) => ({ text: r.text, kind: r.kind, importance: r.importance, status: r.status })),
+    roleExpectations: (a.insights ?? []).map((i) => ({ topic: i.topic, source: i.source, inResume: i.resumeStatus })),
+  };
+  const answers = prep.answers.filter((x) => x.answer.trim());
+
   const out = await callTool({
     model: config.modelTailor,
     maxTokens: 8000,
     system: `${HONESTY_RULES}
 
-Task: produce a complete, ready-to-send resume tailored to the job posting, plus a fit analysis.
+Task: write a complete, ready-to-send resume tailored to this job.
+You get the fit analysis and role research done earlier, and the candidate's own answers to follow-up questions.
 - ${languageRule}
-- Order and phrase experience bullets so the most relevant evidence for this job comes first. Use the posting's terminology only where the resume genuinely supports it.
-- Keep every employer, title, date and number exactly as in the resume. Never add metrics.
+- Write for how a hiring manager for THIS role reads a resume: surface every real fact (from the resume or from the candidate's answers) that matters for the role and its typical expectations, even when the posting does not mention it, and use the profession's standard terminology where the facts support it. Lead the summary and the most relevant role with what matters most for this job.
+- The candidate's answers are facts they stated about themselves. Use them faithfully and only as stated: no inflated scope, no invented numbers, no upgraded titles. An answer that says no, not relevant, or is empty means: do not claim it.
+- Keep every employer, title, date and number exactly as in the resume or the answers. Never add metrics.
 - ${RESUME_STYLE}
 - Israeli conventions are fine (e.g. military service as an experience entry when it appears in the resume).
-- The analysis summary, strengths, change log and "add only if true" items are written in Hebrew for the user. ${USER_VOICE}
-- List the job's 6-15 most important requirements.`,
-    content: [{ type: "text", text: `<resume>\n${resumeText}\n</resume>` }, ...jobContent(job)],
+- addOnlyIfTrue: posting requirements and important role expectations that are still not supported by the resume or the answers, each with a Hebrew suggestion of how to phrase it if it is true.
+- changeLog: Hebrew, 3-8 short items on what was changed and why, mentioning what came from the candidate's answers. ${USER_VOICE}`,
+    content: [
+      { type: "text", text: `<resume>\n${resumeText}\n</resume>` },
+      ...jobContent(job),
+      { type: "text", text: `<analysis>\n${JSON.stringify(research)}\n</analysis>` },
+      {
+        type: "text",
+        text: `<candidate_answers>\n${answers.length ? JSON.stringify(answers) : "The candidate skipped the questions."}\n</candidate_answers>`,
+      },
+    ],
     tool: {
       name: "deliver_tailored_resume",
-      description: "Deliver the fit analysis and the tailored resume",
+      description: "Deliver the tailored resume",
       input_schema: {
         type: "object",
         properties: {
-          jobTitle: str,
-          company: { type: "string", description: "Empty string if unknown" },
-          summary: { type: "string", description: "Hebrew, 2-3 sentences: honest overall fit" },
-          strengths: { ...strArr, description: "Hebrew, 3-5 strongest points of fit, each grounded in the resume" },
-          requirements: { type: "array", items: requirementJson },
           resume: resumeJsonSchema,
           addOnlyIfTrue: {
             type: "array",
             items: {
               type: "object",
               properties: {
-                requirement: { type: "string", description: "The unsupported job requirement" },
+                requirement: { type: "string", description: "The unsupported requirement or role expectation" },
                 suggestion: { type: "string", description: "Hebrew: how to phrase it in the resume, only if it is true" },
               },
               required: ["requirement", "suggestion"],
@@ -394,26 +575,12 @@ Task: produce a complete, ready-to-send resume tailored to the job posting, plus
           },
           changeLog: { ...strArr, description: "Hebrew, 3-8 short items: what was changed and why" },
         },
-        required: ["jobTitle", "company", "summary", "strengths", "requirements", "resume", "addOnlyIfTrue", "changeLog"],
+        required: ["resume", "addOnlyIfTrue", "changeLog"],
       },
     },
     schema: tailorSchema,
   });
-
-  return {
-    analysis: {
-      jobTitle: out.jobTitle,
-      company: out.company,
-      language: out.resume.language,
-      score: computeScore(out.requirements),
-      summary: out.summary,
-      requirements: out.requirements,
-      strengths: out.strengths,
-    },
-    resume: out.resume,
-    addOnlyIfTrue: out.addOnlyIfTrue,
-    changeLog: out.changeLog,
-  };
+  return out;
 }
 
 /* ---------- cover letter ---------- */

@@ -7,17 +7,13 @@ import { useState } from "react";
 import type { HonestyFlag, TailorDocument, TailoredResume } from "@/lib/types";
 import { ResumePreview } from "./resume-preview";
 import { ScoreRing } from "./score-ring";
+import { FitChips, RequirementsTable, RoleInsights } from "./fit-details";
 import { ResumeEditor } from "./resume-editor";
 import { ProgressNote } from "./progress-note";
 
 type ClientDoc = Omit<TailorDocument, "sourceResumeText">;
 type Tab = "resume" | "report" | "letter";
 
-const STATUS = {
-  met: { label: "יש", cls: "bg-mint text-forest" },
-  partial: { label: "חלקי", cls: "bg-amber-soft text-amber-ink" },
-  missing: { label: "חסר", cls: "bg-danger-soft text-danger" },
-} as const;
 
 export function DocWorkspace({ doc, canGenerate }: { doc: ClientDoc; canGenerate: boolean }) {
   const router = useRouter();
@@ -235,6 +231,7 @@ export function DocWorkspace({ doc, canGenerate }: { doc: ClientDoc; canGenerate
       <div id="panel-report" role="tabpanel" aria-labelledby="tab-report" hidden={tab !== "report"} className="mt-6 space-y-5">
         <div className="card p-7">
           <ScoreRing score={a.score} />
+          <FitChips analysis={a} />
           <p className="mt-5 max-w-3xl text-lg">{a.summary}</p>
           {a.strengths.length > 0 && (
             <>
@@ -247,31 +244,8 @@ export function DocWorkspace({ doc, canGenerate }: { doc: ClientDoc; canGenerate
             </>
           )}
         </div>
-        <div className="card overflow-hidden">
-          <table className="w-full text-right">
-            <caption className="px-6 pt-6 text-start font-display text-2xl font-bold">כל הדרישות</caption>
-            <thead>
-              <tr className="border-b border-line text-sm text-muted">
-                <th scope="col" className="px-6 py-3 font-semibold">דרישה</th>
-                <th scope="col" className="px-3 py-3 font-semibold">סוג</th>
-                <th scope="col" className="px-3 py-3 font-semibold">מצב</th>
-                <th scope="col" className="hidden px-6 py-3 font-semibold md:table-cell">מה מצאנו בקורות החיים</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-line">
-              {a.requirements.map((r, i) => (
-                <tr key={i} className="align-top">
-                  <td className="px-6 py-4" dir="auto">{r.text}</td>
-                  <td className="whitespace-nowrap px-3 py-4 text-sm">{r.importance === "must" ? "חובה" : "יתרון"}</td>
-                  <td className="px-3 py-4">
-                    <span className={`chip ${STATUS[r.status].cls}`}>{STATUS[r.status].label}</span>
-                  </td>
-                  <td className="hidden px-6 py-4 text-muted md:table-cell" dir="auto">{r.evidence || "—"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <RoleInsights insights={a.insights ?? []} />
+        <RequirementsTable analysis={a} />
       </div>
 
       {/* ---------- cover letter ---------- */}
