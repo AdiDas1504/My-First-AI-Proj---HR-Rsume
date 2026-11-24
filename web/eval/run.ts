@@ -232,5 +232,9 @@ async function main() {
 
 main().catch((err) => {
   console.error(err);
+  // Leave a report even on failure, so the result is visible on the eval-results branch.
+  const dir = path.join(process.cwd(), "eval", "results");
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(path.join(dir, "latest.md"), `# JobFit quality evaluation\n\n**The evaluation failed:** ${(err as Error).message}\n`);
   process.exit(1);
 });
