@@ -308,7 +308,7 @@ Role research. This is what makes the result sharp instead of generic: a hiring 
   resumeStatus: "shown" = clearly in the resume; "hidden" = there but buried, vague or under-stated; "absent" = not in the resume.
   evidence: exact quote from the resume when shown or hidden, else an empty string.
   why: Hebrew, one short sentence in second person on why it matters for this role.
-- questions: 3-7 questions to ask the candidate BEFORE writing, in Hebrew, second person, one topic each, most impactful first. Ask about hidden or absent items that are plausible given their background, and about missing scope or results that would make real experience stronger (team size, budget, volumes, numbers, what changed). Ask for concrete facts (what, how many, what was the result) and never lead them toward claiming something. Do not ask about what is already clear in the resume, or about things far outside their background.
+- questions: 3-7 questions to ask the candidate BEFORE writing, in Hebrew, second person, one topic each, most impactful first. The candidate is not the writer: they only point you to facts, and you will do all the professional wording. So keep each question short, plain and quick to answer in a few casual words (often yes/no plus a detail), e.g. "יצא לך לעבוד ישירות מול ההנהלה על יעדים עסקיים? אם כן, על מה?" or "את מודדת משהו בתחום, כמו תחלופה או זמן גיוס? יש מספר שזכור לך?". Ask about hidden or absent items that are plausible given their background, and about missing scope or results that would make real experience stronger (team size, budget, volumes, what changed). Never lead them toward claiming something. Do not ask about what is already clear in the resume, or about things far outside their background.
   topic: a short Hebrew label; why: Hebrew, one short sentence on how the answer helps the resume.
 `.trim();
 
@@ -540,12 +540,13 @@ Task: write a complete, ready-to-send resume tailored to this job.
 You get the fit analysis and role research done earlier, and the candidate's own answers to follow-up questions.
 - ${languageRule}
 - Write for how a hiring manager for THIS role reads a resume: surface every real fact (from the resume or from the candidate's answers) that matters for the role and its typical expectations, even when the posting does not mention it, and use the profession's standard terminology where the facts support it. Lead the summary and the most relevant role with what matters most for this job.
-- The candidate's answers are facts they stated about themselves. Use them faithfully and only as stated: no inflated scope, no invented numbers, no upgraded titles. An answer that says no, not relevant, or is empty means: do not claim it.
+- You are the professional writer and you own the result. The candidate's answers are raw notes in their own casual words: they point you to real facts, they are not text to paste. Pull out the facts and write them the way a top resume writer would: concise, polished, professional, in the profession's language and tuned to this job. Put each fact where it belongs (the right role's bullets, the summary, skills), merge it with related resume content, and leave out what does not help this application. Never copy an answer's wording or sentence structure into the resume.
+- Professional wording, honest content: you may name a fact in the profession's standard terms (e.g. "reports to the CEO and takes part in management meetings" -> "HR partner to senior management"), but never inflate it: no bigger scope, no invented numbers or results, no upgraded titles, no "led" for "took part". An answer that says no, not relevant, or is empty means: do not claim it.
 - Keep every employer, title, date and number exactly as in the resume or the answers. Never add metrics.
 - ${RESUME_STYLE}
 - Israeli conventions are fine (e.g. military service as an experience entry when it appears in the resume).
 - addOnlyIfTrue: posting requirements and important role expectations that are still not supported by the resume or the answers, each with a Hebrew suggestion of how to phrase it if it is true.
-- changeLog: Hebrew, 3-8 short items on what was changed and why, mentioning what came from the candidate's answers. ${USER_VOICE}`,
+- changeLog: Hebrew, 3-8 short items on what was changed and why, including how the candidate's answers were used. ${USER_VOICE}`,
     content: [
       { type: "text", text: `<resume>\n${resumeText}\n</resume>` },
       ...jobContent(job),

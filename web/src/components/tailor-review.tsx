@@ -85,8 +85,8 @@ export function TailorReview({
       <section className="card p-6 md:p-7" aria-labelledby="q-title">
         <h2 id="q-title" className="text-2xl">כמה שאלות לפני שכותבים</h2>
         <p className="mt-1 max-w-2xl text-muted">
-          אלה דברים שחשובים בתפקיד הזה ולא ברור מקורות החיים אם יש לך אותם. ענו רק על מה שנכון, במילים שלכם. כל תשובה נכנסת לקורות החיים
-          בדיוק כפי שכתבתם, בלי ניפוח ובלי מספרים שלא נתתם. אפשר לדלג על כל שאלה.
+          אלה דברים שחשובים בתפקיד הזה ולא ברור מקורות החיים אם יש לך אותם. מספיק לענות בכמה מילים, בשפה שלך, ורק על מה שנכון. את
+          הניסוח המקצועי וההתאמה למשרה אנחנו עושים. אפשר לדלג על כל שאלה.
         </p>
         {questions.length === 0 ? (
           <p className="mt-4">אין לנו שאלות הפעם, קורות החיים מכסים את מה שחשוב. אפשר להמשיך לכתיבה.</p>
@@ -106,12 +106,12 @@ export function TailorReview({
                 <textarea
                   id={`a-${q.id}`}
                   aria-describedby={q.why ? `why-${q.id}` : undefined}
-                  className="input mt-3 min-h-24"
+                  className="input mt-3 min-h-20"
                   maxLength={1500}
                   disabled={busy || skipped[q.id]}
                   value={answers[q.id] ?? ""}
                   onChange={(e) => setAnswers((a) => ({ ...a, [q.id]: e.target.value }))}
-                  placeholder="למשל: מה עשית, באיזה היקף, ומה יצא מזה"
+                  placeholder="בכמה מילים, למשל: כן, ניהלתי 2 עובדות"
                 />
                 <label className="mt-2 inline-flex items-center gap-2 text-sm">
                   <input

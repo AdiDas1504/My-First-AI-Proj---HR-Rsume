@@ -207,9 +207,17 @@ async function main() {
       ``,
     );
     check("HR case: answers show up in the resume", usedTerms.length === HR_CASE.expectedInResume.length, `${usedTerms.length}/${HR_CASE.expectedInResume.length}`);
+    // The engine writes; answers are notes. No run of 6+ words may be copied from an answer.
+    const words = (t: string) => t.replace(/[^\p{L}\p{N}\s-]/gu, " ").split(/\s+/).filter(Boolean);
+    const resumeWords = ` ${words(text(withAnswers)).join(" ")} `;
+    const pasted = answers.flatMap((a) => {
+      const w = words(a.answer);
+      return w.slice(0, Math.max(0, w.length - 5)).map((_, i) => w.slice(i, i + 6).join(" ")).filter((run) => resumeWords.includes(` ${run} `));
+    });
+    check("HR case: answers are rewritten professionally, not pasted", pasted.length === 0, pasted.length ? `copied: "${pasted[0]}"` : "");
     check("HR case: no invented facts with answers", flagsWith.length === 0, `${flagsWith.length} flags`);
     check("HR case: no invented facts without answers", flagsWithout.length === 0, `${flagsWithout.length} flags`);
-    check("HR case: without answers, no metrics it was never given", !/30 ימים|45/.test(text(noAnswers)), "");
+    check("HR case: without answers, no metrics it was never given", !/30 (ימים|יום)|45/.test(text(noAnswers)), "");
   }
 
   const passed = checks.filter((c) => c.ok).length;
