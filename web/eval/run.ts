@@ -235,6 +235,9 @@ main().catch((err) => {
   // Leave a report even on failure, so the result is visible on the eval-results branch.
   const dir = path.join(process.cwd(), "eval", "results");
   mkdirSync(dir, { recursive: true });
-  writeFileSync(path.join(dir, "latest.md"), `# JobFit quality evaluation\n\n**The evaluation failed:** ${(err as Error).message}\n`);
+  // Shape of the key only (never its value), to tell a wrong paste from a revoked key.
+  const key = process.env.ANTHROPIC_API_KEY ?? "";
+  const shape = `key set: ${key ? "yes" : "no"} · starts with sk-ant-: ${key.trim().startsWith("sk-ant-") ? "yes" : "no"} · spaces or line breaks around it: ${key !== key.trim() ? "yes" : "no"} · length: ${key.trim().length}`;
+  writeFileSync(path.join(dir, "latest.md"), `# JobFit quality evaluation\n\n**The evaluation failed:** ${(err as Error).message}\n\n${shape}\n`);
   process.exit(1);
 });
