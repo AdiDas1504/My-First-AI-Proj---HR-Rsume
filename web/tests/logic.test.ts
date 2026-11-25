@@ -92,6 +92,24 @@ describe("scoring v2", () => {
     expect(accountant).toBeLessThanOrEqual(15);
     expect(hrManager - accountant).toBeGreaterThan(65);
   });
+  it("never scores someone from the same field below 30 (owner's calibration)", () => {
+    // Recruiter with 3 years applying for HR manager (5 years of management required).
+    const recruiter = computeScore(
+      [
+        req("core", "must", "missing"),
+        req("core", "must", "missing"),
+        req("core", "must", "partial"),
+        req("skill", "must", "partial"),
+        req("skill", "nice", "met"),
+        req("credential", "must", "met"),
+      ],
+      { roleAlignment: "adjacent", seniority: "far_below" },
+    );
+    expect(recruiter).toBeGreaterThanOrEqual(30);
+    expect(recruiter).toBeLessThanOrEqual(35);
+    // The floor does not apply to career changers.
+    expect(computeScore([req("core", "must", "missing"), req("skill", "nice", "partial")], { roleAlignment: "unrelated" })).toBeLessThan(30);
+  });
   it("potential score only lifts wording gaps, never missing ones", () => {
     const reqs = [
       { ...req("skill", "must", "met"), gapType: "none" },

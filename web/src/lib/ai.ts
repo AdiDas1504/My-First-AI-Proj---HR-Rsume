@@ -4,7 +4,7 @@ import { z } from "zod";
 import { config, demo } from "./config";
 import { UserError } from "./errors";
 import type { JobInput } from "./extract";
-import { computeScore, potentialScore, rankGaps } from "./scoring";
+import { computeScore, coverage, potentialScore, rankGaps } from "./scoring";
 import { newNumbers } from "./honesty";
 import { verifyRequirements } from "./evidence";
 import { describeAiError } from "./ai-errors";
@@ -181,6 +181,7 @@ Resume style (current Israeli market standard, two-column layout with a sidebar 
 
 export const USER_VOICE = `
 Voice for every user-facing text: Hebrew, speaking directly to the candidate in second person ("יש לך", "הניסיון שלך"), never "המועמד". Warm, confident, specific and short, like a sharp career coach who is on their side. Lead with what already works, then frame gaps as concrete opportunities. Stay honest: never promise interviews or results, never imply a missing skill can be added unless it is true.
+When the candidate works in the same field but is short on years or level (e.g. 3 years where 5 are asked), say the gap plainly, then name the job's required topics they already have hands-on experience with, and explain that showing them clearly can strengthen the application when a recruiter sees fewer years than asked.
 `.trim();
 
 export async function runScan(resumeText: string, job: JobInput): Promise<ScanResult> {
@@ -284,6 +285,8 @@ function toScanResult(out: z.infer<typeof scanSchema>, resumeText: string): Scan
     missingGapCount: gaps.filter((g) => g.gapType === "missing").length,
     topGaps: gaps.slice(0, 3).map((g) => ({ requirement: g.text, tip: g.tip, gapType: g.gapType as "phrasing" | "missing" })),
     hiddenGapCount: Math.max(0, gaps.length - 3),
+    coveredCount: coverage(reqs).covered,
+    requirementCount: coverage(reqs).total,
     sampleRewrite: sampleIsHonest ? sample : null,
   };
 }
@@ -361,7 +364,7 @@ ${ROLE_RESEARCH_RULES}
 ${USER_VOICE}
 
 Task: analyze the fit between the resume and the job, research what the role really needs, and prepare questions for the candidate. Do not write the resume yet.
-- summary: Hebrew, 2-3 sentences, honest overall fit and the main opportunity.
+- summary: Hebrew, 2-3 sentences, honest overall fit and the main opportunity (see the voice rules for a years or level gap).
 - strengths: Hebrew, 3-5 strongest points of fit, each grounded in the resume.`,
     content: [{ type: "text", text: `<resume>\n${resumeText}\n</resume>` }, ...jobContent(job)],
     tool: {

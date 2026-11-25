@@ -2,7 +2,7 @@ import "server-only";
 import { UserError } from "./errors";
 import type { JobInput } from "./extract";
 import { hebrewRatio } from "./honesty";
-import { computeScore, potentialScore, rankGaps } from "./scoring";
+import { computeScore, coverage, potentialScore, rankGaps } from "./scoring";
 import type { Analysis, Requirement, ScanResult, TailoredResume } from "./types";
 import type { AnalyzeOutput, CandidateAnswer, TailorOutput } from "./ai";
 
@@ -81,6 +81,8 @@ export function demoScan(resumeText: string, job: JobInput): ScanResult {
       tip: g.status === "partial" ? "יש לך ניסיון קרוב. כדאי לנסח אותו במפורש בשפה של המשרה." : "אם יש לך ניסיון כזה, הוסיפו אותו. אם לא, אל תוסיפו.",
     })),
     hiddenGapCount: Math.max(0, gaps.length - 3),
+    coveredCount: coverage(reqs).covered,
+    requirementCount: coverage(reqs).total,
     sampleRewrite: null,
   };
 }

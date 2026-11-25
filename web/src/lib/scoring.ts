@@ -20,7 +20,13 @@ const KIND_WEIGHT: Record<RequirementKind, number> = { core: 3, skill: 2, creden
 const CREDIT = { met: 1, partial: 0.4, missing: 0 } as const;
 const ALIGNMENT: Record<RoleAlignment, number> = { same: 1, adjacent: 0.9, transferable: 0.72, unrelated: 0.45 };
 // Mild on purpose: missing years are usually also a core requirement, so this must not double-punish.
-const SENIORITY: Record<Seniority, number> = { fits: 1, above: 0.95, one_below: 0.93, far_below: 0.8 };
+const SENIORITY: Record<Seniority, number> = { fits: 1, above: 0.95, one_below: 0.95, far_below: 0.85 };
+/**
+ * Someone already working in the same profession is never scored like a
+ * career changer: e.g. a recruiter with 3 years applying for an HR manager role
+ * that asks for 5 gets about 30, not 20. Owner's calibration, Nov 2026.
+ */
+const SAME_FIELD_FLOOR = 30;
 
 export function requirementWeight(r: Scored): number {
   return KIND_WEIGHT[r.kind ?? "skill"] * (r.importance === "must" ? 1 : 0.5);
@@ -44,6 +50,9 @@ export function computeScore(requirements: Scored[], ctx: FitContext = {}): numb
   if (missingCoreMust >= 2) score = Math.min(score, 35);
   else if (missingCoreMust === 1) score = Math.min(score, 55);
   if (missingCredentialMust) score = Math.min(score, 60);
+
+  const sameField = ctx.roleAlignment === "same" || ctx.roleAlignment === "adjacent";
+  if (sameField && got > 0) score = Math.max(score, SAME_FIELD_FLOOR);
 
   return Math.max(0, Math.min(100, Math.round(score)));
 }
@@ -89,3 +98,8 @@ export const SENIORITY_LABEL: Record<Seniority, string> = {
   one_below: "דרגה אחת מתחת לנדרש",
   far_below: "רחוק מהניסיון הנדרש",
 };
+
+/** How many of the job's requirements the candidate already has, at least in part. */
+export function coverage(requirements: Pick<Requirement, "status">[]) {
+  return { covered: requirements.filter((r) => r.status !== "missing").length, total: requirements.length };
+}
