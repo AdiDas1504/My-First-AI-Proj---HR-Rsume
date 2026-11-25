@@ -3,7 +3,7 @@ import { z } from "zod";
 import { answersToSource, runTailor } from "@/lib/ai";
 import { errorResponse, UserError } from "@/lib/errors";
 import { requireActivePlan } from "@/lib/guards";
-import { checkHonesty } from "@/lib/honesty";
+import { checkHonesty, dropUnsupportedSkills } from "@/lib/honesty";
 import { takeRateLimit } from "@/lib/rate-limit";
 import { getStore } from "@/lib/store";
 
@@ -38,6 +38,11 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     const out = await runTailor(session.resumeText, session.job, session.language, { analysis: session.analysis, answers });
     // The honesty check accepts facts from the resume AND from the candidate's own answers.
     const source = [session.resumeText, answersToSource(answers)].filter(Boolean).join("\n\n");
+    const { resume, dropped } = dropUnsupportedSkills(out.resume, source);
+    const addOnlyIfTrue = [
+      ...out.addOnlyIfTrue,
+      ...dropped.map((skill) => ({ requirement: skill, suggestion: "הוצאנו את זה מרשימת הכישורים כי לא מצאנו לזה בסיס בקורות החיים או בתשובות. אם זה נכון, אפשר להחזיר בעריכה." })),
+    ];
     const now = new Date().toISOString();
     const docId = randomUUID();
     const a = session.analysis;
@@ -45,11 +50,11 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       id: docId,
       userId: user.id,
       title: [a.jobTitle, a.company].filter(Boolean).join(" · ") || "משרה",
-      analysis: { ...a, language: out.resume.language },
-      resume: out.resume,
-      addOnlyIfTrue: out.addOnlyIfTrue,
+      analysis: { ...a, language: resume.language },
+      resume,
+      addOnlyIfTrue,
       changeLog: out.changeLog,
-      honestyFlags: checkHonesty(out.resume, source),
+      honestyFlags: checkHonesty(resume, source),
       sourceResumeText: source,
       coverLetter: null,
       createdAt: now,

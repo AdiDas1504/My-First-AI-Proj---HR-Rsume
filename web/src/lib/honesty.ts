@@ -7,7 +7,21 @@ import type { HonestyFlag, TailoredResume } from "./types";
  * again after every user edit. It flags; the user decides.
  */
 
-const HEB_PREFIX = /^[והבכלמש]{1,2}(?=[א-ת]{2,})/;
+/**
+ * Forms of a word to match on: as written, without a 1- or 2-letter prefix
+ * ("והשמה" -> "השמה", "שמה"), and with a common ending dropped
+ * ("רווחה" / "רווחת" -> "רווח", "עובדים" -> "עובד").
+ */
+function forms(t: string): string[] {
+  const out = new Set([t]);
+  if (/^[א-ת]+$/.test(t)) {
+    for (const n of [1, 2]) {
+      if (t.length - n >= 2 && /^[והבכלמש]+$/.test(t.slice(0, n))) out.add(t.slice(n));
+    }
+    for (const f of [...out]) if (f.length >= 4) out.add(f.replace(/(ים|ות|ת|ה|י)$/, ""));
+  }
+  return [...out];
+}
 
 function normalize(text: string): string {
   return text
@@ -35,10 +49,7 @@ export function hebrewRatio(text: string): number {
 function makeSourceIndex(source: string) {
   const norm = normalize(source);
   const tokenSet = new Set<string>();
-  for (const t of tokens(source)) {
-    tokenSet.add(t);
-    tokenSet.add(t.replace(HEB_PREFIX, ""));
-  }
+  for (const t of tokens(source)) for (const f of forms(t)) tokenSet.add(f);
   const numbers = new Set((source.match(/\d+(?:[.,]\d+)?/g) ?? []).map((n) => n.replace(",", ".")));
   return { norm, tokenSet, numbers };
 }
@@ -51,7 +62,7 @@ function phraseSupported(phrase: string, idx: SourceIndex): boolean {
   if (idx.norm.includes(norm)) return true;
   const toks = tokens(phrase);
   if (toks.length === 0) return true;
-  const found = toks.filter((t) => idx.tokenSet.has(t) || idx.tokenSet.has(t.replace(HEB_PREFIX, ""))).length;
+  const found = toks.filter((t) => forms(t).some((f) => idx.tokenSet.has(f))).length;
   return found / toks.length >= 0.6;
 }
 
@@ -124,4 +135,17 @@ export function checkHonesty(resume: TailoredResume, sourceText: string): Honest
     seen.add(k);
     return true;
   });
+}
+
+/**
+ * Skills the source does not support are taken out of the resume and offered
+ * as "add only if true" instead, so a skills list never claims more than the
+ * candidate told us.
+ */
+export function dropUnsupportedSkills(resume: TailoredResume, sourceText: string): { resume: TailoredResume; dropped: string[] } {
+  const idx = makeSourceIndex(sourceText);
+  const sameLanguage = (hebrewRatio(sourceText) > 0.3) === (resume.language === "he");
+  const checkable = (s: string) => sameLanguage || /[a-z]/i.test(s);
+  const dropped = resume.skills.filter((s) => checkable(s) && !phraseSupported(s, idx));
+  return { resume: { ...resume, skills: resume.skills.filter((s) => !dropped.includes(s)) }, dropped };
 }

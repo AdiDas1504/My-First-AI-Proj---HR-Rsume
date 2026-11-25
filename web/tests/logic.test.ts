@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { normalizeIsraeliMobile, maskPhone } from "../src/lib/phone";
 import { computeScore, potentialScore, rankGaps } from "../src/lib/scoring";
-import { checkHonesty, newNumbers } from "../src/lib/honesty";
+import { checkHonesty, dropUnsupportedSkills, newNumbers } from "../src/lib/honesty";
 import { verifyRequirements } from "../src/lib/evidence";
 import { canPurchase, computeEntitlement, periodFrom, usageWindowStart } from "../src/lib/entitlement";
 import { safeNext } from "../src/lib/safe-next";
@@ -348,5 +348,30 @@ describe("resume layout", () => {
     const r = splitSkills(["אפיון צרכים", "Excel", "Power BI", "חשיבה אנליטית", "כלי בינה מלאכותית (AI)"], "he");
     expect(r.skills).toEqual(["אפיון צרכים", "חשיבה אנליטית"]);
     expect(r.tools).toEqual(["Excel", "Power BI", "כלי בינה מלאכותית (AI)"]);
+  });
+});
+
+describe("honesty check wording tolerance", () => {
+  const base: TailoredResume = {
+    language: "he", fullName: "דנה", headline: "", contact: { email: "", phone: "", location: "", links: [] },
+    summary: "", experience: [], education: [], skills: [], languages: [], certifications: [],
+  };
+  it("accepts a skill worded in another Hebrew form", () => {
+    expect(checkHonesty({ ...base, skills: ["רווחת עובדים"] }, "טיפול בשכר, נוכחות ורווחה של העובדים")).toEqual([]);
+  });
+  it("still flags a skill that is not in the source", () => {
+    expect(checkHonesty({ ...base, skills: ["תכנון אסטרטגי ותקציבי"] }, "טיפול בשכר, נוכחות ורווחה של העובדים")).toHaveLength(1);
+  });
+});
+
+describe("unsupported skills", () => {
+  it("moves skills without a basis out of the resume", () => {
+    const r: TailoredResume = {
+      language: "he", fullName: "דנה", headline: "", contact: { email: "", phone: "", location: "", links: [] },
+      summary: "", experience: [], education: [], skills: ["גיוס עובדים", "שימור עובדים", "Excel"], languages: [], certifications: [],
+    };
+    const { resume, dropped } = dropUnsupportedSkills(r, "גיוס עובדים לכל המחלקות, עבודה ב-Excel");
+    expect(resume.skills).toEqual(["גיוס עובדים", "Excel"]);
+    expect(dropped).toEqual(["שימור עובדים"]);
   });
 });

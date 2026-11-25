@@ -16,7 +16,7 @@ export const config = {
   get sessionSecret() {
     return sessionSecret();
   },
-  anthropicKey: process.env.ANTHROPIC_API_KEY || undefined,
+  anthropicKey: process.env.ANTHROPIC_API_KEY?.trim() || undefined,
   modelTailor: process.env.CLAUDE_MODEL_TAILOR || "claude-sonnet-5-5",
   modelScan: process.env.CLAUDE_MODEL_SCAN || "claude-haiku-5-5",
   supabaseUrl: process.env.SUPABASE_URL || undefined,

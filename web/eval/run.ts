@@ -13,7 +13,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { answersToSource, runAnalyze, runScan, runTailor, type AnalyzeOutput, type CandidateAnswer } from "../src/lib/ai";
-import { checkHonesty } from "../src/lib/honesty";
+import { checkHonesty, dropUnsupportedSkills } from "../src/lib/honesty";
 import type { JobInput } from "../src/lib/extract";
 import { EXPECTED, HR_CASE, JOBS, RESUMES, type JobId, type ResumeId } from "./fixtures";
 
@@ -52,6 +52,14 @@ const mean = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.l
 const sd = (xs: number[]) => Math.sqrt(mean(xs.map((x) => (x - mean(xs)) ** 2)));
 const inBand = (s: number, [lo, hi]: [number, number]) => s >= lo && s <= hi;
 const best = (j: JobId) => resumeIds.reduce((a, b) => (EXPECTED[j][a][0] >= EXPECTED[j][b][0] ? a : b));
+
+// Keep the AI layer's error logs (status and API message) for the failure report.
+const errorLog: string[] = [];
+const origError = console.error;
+console.error = (...args: unknown[]) => {
+  errorLog.push(args.map((a) => (typeof a === "string" ? a : JSON.stringify(a))).join(" ").slice(0, 600));
+  origError(...args);
+};
 
 async function main() {
   if (!process.env.ANTHROPIC_API_KEY) throw new Error("Set ANTHROPIC_API_KEY to run the evaluation against Claude.");
@@ -172,7 +180,7 @@ async function main() {
     check("HR case: 3-7 questions", questions.length >= 3 && questions.length <= 7, `${questions.length}`);
 
     // Give each simulated answer to the question that asks about it.
-    const topicOf = [/הנהל|עסק|אסטרטג|שותפ|יעד/, /מד(ד|ו)|נתונ|ROI|KPI|תחלופ|תוצא|השפע/, /ניהל|צוות|כפיפ|עובדים תחת/];
+    const topicOf = [/הנהל|עסק|אסטרטג|שותפ|יעד/, /מד(ד|ו)|נתונ|ROI|KPI|תחלופ|תוצא|השפע/, /ניהל|צוות|כפו?יפ|כפופ|עובדים תחת|מדווחים אליך|עובדים ש/];
     const used = new Set<string>();
     const answers: CandidateAnswer[] = [];
     HR_CASE.answers.forEach((answer, n) => {
@@ -188,8 +196,12 @@ async function main() {
     const withAnswers = await retry(() => runTailor(RESUMES[HR_CASE.resume], job(HR_CASE.job), lang, { analysis, answers }), "tailor with answers");
     const noAnswers = await retry(() => runTailor(RESUMES[HR_CASE.resume], job(HR_CASE.job), lang, { analysis, answers: [] }), "tailor without answers");
     const text = (x: typeof withAnswers) => JSON.stringify(x.resume);
-    const flagsWith = checkHonesty(withAnswers.resume, [RESUMES[HR_CASE.resume], answersToSource(answers)].join("\n\n"));
-    const flagsWithout = checkHonesty(noAnswers.resume, RESUMES[HR_CASE.resume]);
+    // Same post-processing as the site: unsupported skills move to "add only if true".
+    const srcWith = [RESUMES[HR_CASE.resume], answersToSource(answers)].join("\n\n");
+    const cleanWith = dropUnsupportedSkills(withAnswers.resume, srcWith);
+    const cleanWithout = dropUnsupportedSkills(noAnswers.resume, RESUMES[HR_CASE.resume]);
+    const flagsWith = checkHonesty(cleanWith.resume, srcWith);
+    const flagsWithout = checkHonesty(cleanWithout.resume, RESUMES[HR_CASE.resume]);
     const usedTerms = HR_CASE.expectedInResume.filter((re) => re.test(text(withAnswers)));
     lines.push(
       `## 4. HR case: writing`,
@@ -200,6 +212,7 @@ async function main() {
       ...(withAnswers.resume.experience[0]?.bullets ?? []).map((b) => `- ${b}`),
       ``,
       `Honesty flags: ${flagsWith.length ? flagsWith.map((f) => `${f.value} (${f.reason})`).join("; ") : "none"}`,
+      `Skills moved to "add only if true": ${cleanWith.dropped.join(", ") || "none"}`,
       ``,
       `**Without answers** (summary): ${noAnswers.resume.summary}`,
       ``,
@@ -232,5 +245,12 @@ async function main() {
 
 main().catch((err) => {
   console.error(err);
+  // Leave a report even on failure, so the result is visible on the eval-results branch.
+  const dir = path.join(process.cwd(), "eval", "results");
+  mkdirSync(dir, { recursive: true });
+  // Shape of the key only (never its value), to tell a wrong paste from a revoked key.
+  const key = process.env.ANTHROPIC_API_KEY ?? "";
+  const shape = `key set: ${key ? "yes" : "no"} · starts with sk-ant-: ${key.trim().startsWith("sk-ant-") ? "yes" : "no"} · spaces or line breaks around it: ${key !== key.trim() ? "yes" : "no"} · length: ${key.trim().length}`;
+  writeFileSync(path.join(dir, "latest.md"), `# JobFit quality evaluation\n\n**The evaluation failed:** ${(err as Error).message}\n\n${shape}\n\nLast errors:\n\n${errorLog.slice(-3).map((e) => "- " + e).join("\n")}\n`);
   process.exit(1);
 });

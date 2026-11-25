@@ -6,7 +6,6 @@ import type { Requirement } from "./types";
  * status drops one level. This is what keeps the score tied to the resume.
  */
 
-const PREFIX = /^(?:וכש|וש|וה|וב|ול|ומ|שה|שב|של|מה|כש|לה|בה|ו|ה|ב|ל|מ|ש|כ)(?=[א-ת]{2,})/;
 
 function tokens(text: string): string[] {
   return text
@@ -17,16 +16,18 @@ function tokens(text: string): string[] {
     .filter((t) => t.length >= 2);
 }
 
-function stem(t: string): string {
-  return t.replace(PREFIX, "");
+/** The word as written and without a 1- or 2-letter Hebrew prefix (ו, ה, ב, ל, מ, ש, כ). */
+function forms(t: string): string[] {
+  const out = [t];
+  if (/^[א-ת]+$/.test(t)) {
+    for (const n of [1, 2]) if (t.length - n >= 2 && /^[והבכלמש]+$/.test(t.slice(0, n))) out.push(t.slice(n));
+  }
+  return out;
 }
 
 export function resumeIndex(resumeText: string): Set<string> {
   const set = new Set<string>();
-  for (const t of tokens(resumeText)) {
-    set.add(t);
-    set.add(stem(t));
-  }
+  for (const t of tokens(resumeText)) for (const f of forms(t)) set.add(f);
   return set;
 }
 
@@ -36,7 +37,7 @@ export function evidenceInResume(evidence: string, index: Set<string>, resumeTex
   if (!quote) return false;
   const words = tokens(quote);
   if (words.length < 2) return resumeText.toLowerCase().includes(quote.toLowerCase());
-  const found = words.filter((w) => index.has(w) || index.has(stem(w))).length;
+  const found = words.filter((w) => forms(w).some((f) => index.has(f))).length;
   return found / words.length >= 0.75;
 }
 
