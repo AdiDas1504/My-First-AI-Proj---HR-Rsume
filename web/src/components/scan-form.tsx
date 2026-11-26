@@ -167,7 +167,7 @@ export function ScanForm({ subscriber, trialAvailable }: { subscriber: boolean; 
         <div className="card relative overflow-hidden bg-forest p-7 text-white md:p-10">
           <div aria-hidden="true" className="absolute -left-16 -top-16 size-56 rounded-full bg-amber/25 blur-3xl" />
           <p className="relative font-display text-3xl font-bold">
-            {lift >= 5 ? `קורות חיים שמגיעים ל-${result.potentialScore}, מוכנים לשליחה תוך דקה` : "קורות חיים מותאמים למשרה הזו, מוכנים לשליחה תוך דקה"}
+            {lift >= 5 ? `קורות חיים שמגיעים ל-${result.potentialScore} ומוכנים לשליחה` : "קורות חיים מותאמים למשרה הזו ומוכנים לשליחה"}
           </p>
           <p className="relative mt-2 max-w-2xl text-white/85">
             אנחנו מנסחים מחדש את מה שכבר עשית בשפה של המשרה, מסדרים את מה שהכי רלוונטי בראש ומסמנים כל פרט לבדיקה שלך. בלי להמציא אף מילה.

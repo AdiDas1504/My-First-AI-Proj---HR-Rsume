@@ -86,7 +86,7 @@ export function BuilderResult({
       {dirty && <p className="mt-3 text-sm text-amber-ink">יש שינויים שלא נשמרו. שמרו כדי להוריד את הגרסה המעודכנת.</p>}
 
       <p role="note" className="mt-5 rounded-2xl bg-amber-soft px-5 py-4 text-amber-ink">
-        <strong>זו טיוטה שנוצרה בעזרת AI.</strong> קראו כל שורה לפני השליחה ודאו שכל פרט נכון ומדויק ותקנו בעריכה מה שלא.
+        <strong>זו טיוטה שנוצרה בעזרת AI.</strong> קראו כל שורה לפני השליחה. בדקו שכל פרט נכון ומדויק ותקנו בעריכה את מה שלא.
       </p>
 
       {flags.length > 0 && (

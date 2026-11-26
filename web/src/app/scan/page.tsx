@@ -29,7 +29,7 @@ export default async function ScanPage() {
             <li>• 3 הפערים החשובים ביותר, עם טיפ לכל אחד</li>
           </ul>
           <p className="mt-6 text-muted">
-            הבדיקה חינמית פעם אחת לכל מספר טלפון. אימות ב-SMS מבטיח שהיא נשארת הוגנת לכולם.
+            הבדיקה החינמית ניתנת פעם אחת לכל משתמש. אימות קצר ב-SMS שומר עליה הוגנת לכולם.
           </p>
         </div>
         <div className="mx-auto w-full max-w-md">

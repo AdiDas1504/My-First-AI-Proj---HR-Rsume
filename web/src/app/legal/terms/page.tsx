@@ -15,12 +15,12 @@ export default function TermsPage() {
       </section>
       <section>
         <h2>בדיקה חינמית</h2>
-        <p>בדיקת התאמה חינמית אחת לכל מספר טלפון ולכל מכשיר. ניסיון לעקוף מגבלה זו (למשל פתיחת חשבונות מרובים) עלול להביא לחסימה.</p>
+        <p>בדיקת התאמה חינמית אחת לכל משתמש. ניסיון לעקוף מגבלה זו (למשל פתיחת חשבונות מרובים) עלול להביא לחסימה.</p>
       </section>
       <section>
         <h2>מסלולים וחידוש אוטומטי</h2>
         <ul>
-          <li>{PLANS.trial.name}: {formatPrice(PLANS.trial.priceAgorot)} ל-7 ימים, פעם אחת לכל מספר טלפון. בסוף השבוע המנוי מתחדש אוטומטית כמנוי חודשי, אלא אם בוטל.</li>
+          <li>{PLANS.trial.name}: {formatPrice(PLANS.trial.priceAgorot)} ל-7 ימים פעם אחת לכל משתמש. בסוף השבוע המנוי מתחדש אוטומטית כמנוי חודשי, אלא אם בוטל.</li>
           <li>{PLANS.monthly.name}: {formatPrice(PLANS.monthly.priceAgorot)} לכל 30 יום, מתחדש אוטומטית עד לביטול.</li>
           <li>{PLANS.quarterly.name}: {formatPrice(PLANS.quarterly.priceAgorot)} לכל 90 יום, מתחדש אוטומטית עד לביטול.</li>
           <li>כל המחירים הם המחירים הסופיים. מכסת שימוש הוגן: עד {PLANS.monthly.tailorQuota} התאמות בכל 30 יום ({PLANS.trial.tailorQuota} בשבוע ההיכרות).</li>

@@ -81,7 +81,7 @@ export function LoginForm({ next = "/app", compact = false }: { next?: string; c
             required
           />
           <p id="phone-hint" className="hint mt-2">
-            נשלח קוד חד-פעמי ב-SMS. בלי סיסמאות. המספר משמש לכניסה בלבד ולא נשלח אליו שיווק.
+            נשלח קוד חד-פעמי ב-SMS. בלי סיסמאות ובלי הודעות שיווק.
           </p>
           <label className="mt-5 flex items-start gap-3 text-[0.95rem]">
             <input type="checkbox" className="mt-1 size-5 shrink-0 accent-forest" checked={consent} onChange={(e) => setConsent(e.target.checked)} />

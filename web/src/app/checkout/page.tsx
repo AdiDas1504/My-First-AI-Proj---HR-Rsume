@@ -66,7 +66,7 @@ export default async function CheckoutPage({
               </div>
             </dl>
             <p className="mt-6 rounded-xl bg-paper-2 p-4 text-[0.95rem]">
-              <strong>חשוב לדעת:</strong> המנוי מתחדש אוטומטית בסוף כל תקופה. אפשר לבטל בכל רגע באזור האישי בלחיצה אחת. הביטול נכנס לתוקף מיד וסוגר את הגישה והחזר על התקופה הנוכחית אפשרי רק אם לא השתמשתם בשירותי האתר בתקופה הזו. המחיר הוא המחיר הסופי.
+              <strong>חשוב לדעת:</strong> המנוי מתחדש אוטומטית בסוף כל תקופה. אפשר לבטל בכל רגע באזור האישי בלחיצה אחת. הביטול נכנס לתוקף מיד וסוגר את הגישה. החזר על התקופה הנוכחית אפשרי רק אם לא השתמשתם בשירותי האתר בתקופה הזו. המחיר הוא המחיר הסופי.
             </p>
             <CheckoutButton plan={planId} label={`לתשלום ${formatPrice(plan.priceAgorot)}`} />
             <p className="mt-4 text-center text-sm text-muted">
