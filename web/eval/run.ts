@@ -62,6 +62,7 @@ console.error = (...args: unknown[]) => {
 };
 
 async function main() {
+  process.env.AI_USAGE_LOG = "0"; // evaluation calls are not site usage
   if (!process.env.ANTHROPIC_API_KEY) throw new Error("Set ANTHROPIC_API_KEY to run the evaluation against Claude.");
   const lines: string[] = [`# JobFit quality evaluation`, ``, `Date: ${new Date().toISOString()} · scan reps: ${REPS}`, ``];
   const checks: { name: string; ok: boolean; detail: string }[] = [];

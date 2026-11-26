@@ -15,6 +15,8 @@ export const RETENTION_DAYS = {
   rateEvents: 2,
   /** Expired login codes. */
   otps: 1,
+  /** Anonymous page views and AI cost records (year-over-year comparison). */
+  analytics: 400,
 };
 
 /**
@@ -45,6 +47,7 @@ export function schedulePurge() {
         sessions: iso(RETENTION_DAYS.sessions),
         otps: iso(RETENTION_DAYS.otps),
         rateEvents: iso(RETENTION_DAYS.rateEvents),
+        analytics: iso(RETENTION_DAYS.analytics),
       });
       console.info("purge: deleted expired data", counts);
     } catch (err) {

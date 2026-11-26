@@ -117,6 +117,28 @@ create table if not exists tailor_sessions (
 create index if not exists tailor_sessions_user on tailor_sessions (user_id, created_at desc);
 create index if not exists tailor_sessions_created on tailor_sessions (created_at);
 
+-- Anonymous page views for the owner's conversion funnel. "visitor" is a
+-- one-way key of the browser's device cookie, never a phone or a name.
+create table if not exists analytics_events (
+  id bigint generated always as identity primary key,
+  name text not null,
+  visitor text,
+  created_at timestamptz not null default now()
+);
+create index if not exists analytics_events_time on analytics_events (created_at);
+
+-- Real AI cost per call (tokens from the API response; cost in millionths of a dollar).
+create table if not exists ai_usage (
+  id bigint generated always as identity primary key,
+  model text not null,
+  purpose text not null,
+  input_tokens int not null,
+  output_tokens int not null,
+  cost_micros bigint not null,
+  created_at timestamptz not null default now()
+);
+create index if not exists ai_usage_time on ai_usage (created_at);
+
 -- Payments are kept for accounting even if the account is deleted.
 create table if not exists payments (
   id uuid primary key,
@@ -138,6 +160,8 @@ alter table documents enable row level security;
 alter table payments enable row level security;
 alter table builder_drafts enable row level security;
 alter table tailor_sessions enable row level security;
+alter table analytics_events enable row level security;
+alter table ai_usage enable row level security;
 
 -- The server key works through the service_role Postgres role. Grant it
 -- explicitly, in case the project doesn't expose new tables automatically.
@@ -147,4 +171,5 @@ grant all on all sequences in schema public to service_role;
 
 -- Housekeeping (privacy policy): the app itself deletes, once a day, documents and
 -- builder drafts not updated for 180 days, tailoring sessions older than 7 days,
--- expired login codes and old rate-limit counters (src/lib/privacy.ts).
+-- expired login codes, old rate-limit counters, and page views and AI cost
+-- records older than 400 days (src/lib/privacy.ts).

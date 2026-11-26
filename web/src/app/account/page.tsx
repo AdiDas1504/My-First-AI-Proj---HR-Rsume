@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AccountActions } from "@/components/account-actions";
+import { isAdmin } from "@/lib/admin";
 import { getEntitlement } from "@/lib/billing";
 import { maskPhone } from "@/lib/phone";
 import { PLANS, formatPrice, productName } from "@/lib/plans";
@@ -23,6 +24,11 @@ export default async function AccountPage() {
     <div className="container-page py-10 md:py-14">
       <Link href="/app" className="link text-sm">→ חזרה לגרסאות שלי</Link>
       <h1 className="mt-3 text-4xl md:text-5xl">החשבון והמנוי</h1>
+      {isAdmin(user) && (
+        <p className="mt-3">
+          <Link href="/admin" className="btn btn-secondary">לוח בקרה (בעלים)</Link>
+        </p>
+      )}
 
       <div className="mt-8 grid gap-5 lg:grid-cols-2">
         <section className="card p-7" aria-labelledby="sub-title">

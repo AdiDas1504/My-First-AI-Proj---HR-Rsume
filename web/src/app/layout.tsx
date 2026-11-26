@@ -7,6 +7,7 @@ import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { AccessibilityToolbar } from "@/components/accessibility-toolbar";
 import { DemoBanner } from "@/components/demo-banner";
+import { TrackView } from "@/components/track-view";
 
 const appUrl = process.env.APP_URL ?? "http://localhost:3000";
 
@@ -53,6 +54,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </main>
         <SiteFooter />
         <AccessibilityToolbar />
+        <TrackView />
       </body>
     </html>
   );

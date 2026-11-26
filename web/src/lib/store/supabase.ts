@@ -1,6 +1,6 @@
 import "server-only";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import type { Store, FreeScanRecord, DocumentSummary, DraftSummary, PurgeCutoffs } from "./types";
+import type { Store, FreeScanRecord, DocumentSummary, DraftSummary, PurgeCutoffs, AiUsageRecord, AnalyticsEvent, AdminUserRow } from "./types";
 import type {
   BuilderDraft,
   OtpChallenge,
@@ -315,6 +315,99 @@ export class SupabaseStore implements Store {
     check(await this.db.from("tailor_sessions").update(sessionToRow(x)).eq("id", x.id).eq("user_id", x.userId));
   }
 
+  async addEvent(e: AnalyticsEvent) {
+    check(await this.db.from("analytics_events").insert({ name: e.name, visitor: e.visitor, created_at: e.createdAt }));
+  }
+  async addAiUsage(r: AiUsageRecord) {
+    check(
+      await this.db.from("ai_usage").insert({
+        model: r.model,
+        purpose: r.purpose,
+        input_tokens: r.inputTokens,
+        output_tokens: r.outputTokens,
+        cost_micros: r.costMicros,
+        created_at: r.createdAt,
+      }),
+    );
+  }
+
+  /** Reads every row since a date, in pages (PostgREST returns at most 1000 at a time). */
+  private async since(table: string, columns: string, sinceIso: string): Promise<any[]> {
+    const out: any[] = [];
+    for (let from = 0; ; from += 1000) {
+      const rows = check(
+        await this.db.from(table).select(columns).gte("created_at", sinceIso).order("created_at").range(from, from + 999),
+      ) as any[];
+      out.push(...rows);
+      if (rows.length < 1000 || out.length >= 50_000) return out;
+    }
+  }
+
+  async adminData(since: string) {
+    const [users, payments, usage, events, ai, drafts] = await Promise.all([
+      this.since("users", "id, created_at", since),
+      this.since("payments", "user_id, plan, amount_agorot, status, provider_ref, created_at", since),
+      this.since("usage_events", "user_id, kind, created_at", since),
+      this.since("analytics_events", "name, visitor, created_at", since),
+      this.since("ai_usage", "model, purpose, input_tokens, output_tokens, cost_micros, created_at", since),
+      this.since("builder_drafts", "created_at", since),
+    ]);
+    return {
+      users: users.map((r) => ({ id: r.id, createdAt: r.created_at })),
+      payments: payments.map((r) => ({
+        userId: r.user_id,
+        plan: r.plan,
+        amountAgorot: r.amount_agorot,
+        status: r.status,
+        providerRef: r.provider_ref,
+        createdAt: r.created_at,
+      })),
+      usage: usage.map((r) => ({ userId: r.user_id, kind: r.kind, createdAt: r.created_at })),
+      events: events.map((r) => ({ name: r.name, visitor: r.visitor, createdAt: r.created_at })),
+      ai: ai.map((r) => ({
+        model: r.model,
+        purpose: r.purpose,
+        inputTokens: r.input_tokens,
+        outputTokens: r.output_tokens,
+        costMicros: r.cost_micros,
+        createdAt: r.created_at,
+      })),
+      drafts: drafts.map((r) => ({ createdAt: r.created_at })),
+    };
+  }
+
+  async adminUsers(opts: { limit: number; phoneContains?: string }): Promise<AdminUserRow[]> {
+    let q = this.db.from("users").select("id, phone, created_at").order("created_at", { ascending: false }).limit(opts.limit);
+    // Digits and + only (validated by the caller), so the pattern is safe.
+    if (opts.phoneContains) q = q.like("phone", `%${opts.phoneContains}%`);
+    const users = check(await q) as any[];
+    if (!users.length) return [];
+    const ids = users.map((u) => u.id);
+    const [subs, docs, drafts] = await Promise.all([
+      this.db.from("subscriptions").select("*").in("user_id", ids),
+      this.db.from("documents").select("user_id").in("user_id", ids),
+      this.db.from("builder_drafts").select("user_id").in("user_id", ids),
+    ]);
+    const count = (rows: any[] | null, id: string) => (rows ?? []).filter((r) => r.user_id === id).length;
+    return users.map((u) => ({
+      id: u.id,
+      phone: u.phone,
+      createdAt: u.created_at,
+      subscription: (() => {
+        const r = (check(subs) as any[]).find((x) => x.user_id === u.id);
+        return r ? subFromRow(r) : null;
+      })(),
+      documents: count(check(docs) as any[], u.id),
+      drafts: count(check(drafts) as any[], u.id),
+    }));
+  }
+
+  async deleteFreeScans(phones: string[]) {
+    const res = await this.db.from("free_scans").delete({ count: "exact" }).in("phone", phones);
+    if (res.error) throw new Error(res.error.message);
+    return res.count ?? 0;
+  }
+
   async purgeExpired(c: PurgeCutoffs) {
     const del = async (table: string, column: string, before: string) => {
       const res = await this.db.from(table).delete({ count: "exact" }).lt(column, before);
@@ -327,6 +420,8 @@ export class SupabaseStore implements Store {
       sessions: await del("tailor_sessions", "created_at", c.sessions),
       otps: await del("otp_challenges", "expires_at", c.otps),
       rateEvents: await del("rate_events", "created_at", c.rateEvents),
+      analytics: await del("analytics_events", "created_at", c.analytics),
+      aiUsage: await del("ai_usage", "created_at", c.analytics),
     };
   }
 
