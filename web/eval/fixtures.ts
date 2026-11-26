@@ -195,7 +195,7 @@ export type JobId = keyof typeof JOBS;
 
 /** Expected score band for each pair: [min, max]. */
 export const EXPECTED: Record<JobId, Record<ResumeId, [number, number]>> = {
-  hrManagerJob: { hrManager: [75, 100], hrManagerPlain: [60, 95], hrGeneralist: [25, 60], accountant: [0, 25], projectManager: [5, 40], juniorDev: [0, 15] },
+  hrManagerJob: { hrManager: [75, 100], hrManagerPlain: [60, 95], hrGeneralist: [28, 40], accountant: [0, 25], projectManager: [5, 40], juniorDev: [0, 15] },
   accountantJob: { hrManager: [0, 25], hrManagerPlain: [0, 20], hrGeneralist: [0, 15], accountant: [75, 100], projectManager: [0, 30], juniorDev: [0, 15] },
   projectManagerJob: { hrManager: [5, 40], hrManagerPlain: [0, 35], hrGeneralist: [0, 30], accountant: [0, 35], projectManager: [75, 100], juniorDev: [0, 25] },
   frontendJob: { hrManager: [0, 15], hrManagerPlain: [0, 15], hrGeneralist: [0, 15], accountant: [0, 15], projectManager: [0, 25], juniorDev: [45, 80] },

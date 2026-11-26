@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { Analysis, TailorQuestion } from "@/lib/types";
+import { coverage } from "@/lib/scoring";
 import { ScoreRing } from "./score-ring";
 import { FitChips, RequirementsTable, RoleInsights } from "./fit-details";
 import { ProgressNote } from "./progress-note";
@@ -27,6 +28,7 @@ export function TailorReview({
   const [skipped, setSkipped] = useState<Record<string, boolean>>({});
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const covered = coverage(analysis.requirements);
   const answeredCount = questions.filter((q) => !skipped[q.id] && answers[q.id]?.trim()).length;
 
   async function generate() {
@@ -60,6 +62,11 @@ export function TailorReview({
             </h2>
             <FitChips analysis={analysis} />
             <p className="mt-3 max-w-2xl text-lg">{analysis.summary}</p>
+            {covered.covered > 0 && (
+              <p className="mt-3 text-forest">
+                כבר יש לך ניסיון ב-<strong>{covered.covered} מתוך {covered.total}</strong> הדרישות של המשרה, לפחות חלקית. נבליט אותן בקורות החיים.
+              </p>
+            )}
           </div>
         </div>
         {analysis.strengths.length > 0 && (

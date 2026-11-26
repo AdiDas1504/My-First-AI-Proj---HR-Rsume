@@ -88,6 +88,9 @@ export type ScanResult = {
   missingGapCount: number;
   topGaps: { requirement: string; tip: string; gapType: GapType }[];
   hiddenGapCount: number;
+  /** Requirements the candidate already has at least in part, out of all listed. */
+  coveredCount: number;
+  requirementCount: number;
   /** One real resume line, rewritten for the job with no new facts. */
   sampleRewrite: { before: string; after: string } | null;
 };

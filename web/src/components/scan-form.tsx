@@ -73,6 +73,12 @@ export function ScanForm({ subscriber, trialAvailable }: { subscriber: boolean; 
             )}
           </div>
           <p className="mt-6 max-w-2xl text-lg">{result.verdict}</p>
+          {result.coveredCount > 0 && (
+            <p className="mt-4 max-w-2xl rounded-xl bg-mint px-4 py-3 text-forest">
+              כבר יש לך ניסיון ב-<strong>{result.coveredCount} מתוך {result.requirementCount}</strong> הדרישות של המשרה, לפחות חלקית. בקורות החיים
+              המותאמים נבליט אותן, כדי שהמגייס יראה אותן מיד.
+            </p>
+          )}
         </div>
 
         {/* ---------- what already works ---------- */}
