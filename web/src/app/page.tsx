@@ -61,7 +61,7 @@ export default function Home() {
               בלי להמציא אף מילה
             </h1>
             <p className="mt-6 max-w-xl text-lg text-muted md:text-xl">
-              מעלים קורות חיים ומודעת דרושים ומקבלים תוך דקה ציון התאמה, את הפערים שחשוב לסגור וגרסה מותאמת מוכנה לשליחה ב-Word או PDF.
+              מעלים קורות חיים ומודעת דרושים ומקבלים תוך דקה ציון התאמה ואת הפערים שחשוב לסגור. משם ממשיכים לגרסה מותאמת מוכנה לשליחה ב-Word או PDF.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <Link href="/scan" className="btn btn-primary px-7 text-lg">
@@ -177,7 +177,7 @@ export default function Home() {
                 אין לך קורות חיים טובים? נבנה אותם יחד
               </h2>
               <p className="mt-4 max-w-xl text-lg text-muted">
-                עונים על שאלות פשוטות, במילים שלכם ואנחנו שואלים שאלות המשך שמוציאות את ההישגים האמיתיים. בסוף מקבלים קורות חיים מקצועיים ב-3 עיצובים, בעברית או באנגלית. מתאים גם לשיפור קורות חיים קיימים.
+                עונים במילים שלכם על שאלות פשוטות. אנחנו שואלים שאלות המשך שמוציאות את ההישגים האמיתיים. בסוף מקבלים קורות חיים מקצועיים ב-3 עיצובים, בעברית או באנגלית. מתאים גם לשיפור קורות חיים קיימים.
               </p>
               <div className="mt-6 flex flex-wrap items-center gap-3">
                 <Link href="/builder" className="btn btn-primary text-lg">

@@ -53,7 +53,7 @@ export function PricingCards({ ctaHref = (plan: PlanId) => `/checkout?plan=${pla
           <Link href={ctaHref("trial")} className="btn btn-primary text-lg">
             להתחיל שבוע ב-{formatPrice(trial.priceAgorot)}
           </Link>
-          <span className="text-sm text-muted">פעם אחת לכל מספר טלפון</span>
+          <span className="text-sm text-muted">למצטרפים חדשים</span>
         </div>
       </article>
 
