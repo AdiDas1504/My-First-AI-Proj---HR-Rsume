@@ -1,13 +1,12 @@
-import { setCancelAtPeriodEnd } from "@/lib/billing";
+import { cancelSubscriptionNow } from "@/lib/billing";
 import { errorResponse } from "@/lib/errors";
 import { requireUser } from "@/lib/guards";
 
-/** Body: { cancel: true } to stop renewal, { cancel: false } to undo. */
-export async function POST(req: Request) {
+/** Cancels the subscription now: access ends and no further charges. */
+export async function POST() {
   try {
     const user = await requireUser();
-    const body = await req.json().catch(() => ({}));
-    await setCancelAtPeriodEnd(user.id, body.cancel !== false);
+    await cancelSubscriptionNow(user.id);
     return Response.json({ ok: true });
   } catch (err) {
     return errorResponse(err);

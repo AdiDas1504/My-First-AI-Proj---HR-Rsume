@@ -170,7 +170,7 @@ export function ScanForm({ subscriber, trialAvailable }: { subscriber: boolean; 
             {lift >= 5 ? `קורות חיים שמגיעים ל-${result.potentialScore}, מוכנים לשליחה תוך דקה` : "קורות חיים מותאמים למשרה הזו, מוכנים לשליחה תוך דקה"}
           </p>
           <p className="relative mt-2 max-w-2xl text-white/85">
-            אנחנו מנסחים מחדש את מה שכבר עשית בשפה של המשרה, מסדרים את מה שהכי רלוונטי בראש, ומסמנים כל פרט לבדיקה שלך. בלי להמציא אף מילה.
+            אנחנו מנסחים מחדש את מה שכבר עשית בשפה של המשרה, מסדרים את מה שהכי רלוונטי בראש ומסמנים כל פרט לבדיקה שלך. בלי להמציא אף מילה.
           </p>
           <div className="relative mt-6 flex flex-wrap items-center gap-4">
             <Link href={cta.href} className="btn bg-white px-7 text-lg text-forest hover:bg-amber-soft">

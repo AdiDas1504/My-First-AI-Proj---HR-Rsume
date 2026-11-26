@@ -22,7 +22,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
       {welcome && ent.active && (
         <div role="status" className="mb-8 rounded-2xl bg-mint px-6 py-5 text-forest">
           <p className="text-lg font-semibold">ברוכים הבאים! המנוי פעיל.</p>
-          <p>אפשר להתחיל: מעלים קורות חיים ומשרה, ותוך דקה יש גרסה מותאמת.</p>
+          <p>אפשר להתחיל: מעלים קורות חיים ומשרה ותוך דקה יש גרסה מותאמת.</p>
         </div>
       )}
 

@@ -1,4 +1,4 @@
-import { setCancelAtPeriodEnd } from "@/lib/billing";
+import { cancelSubscriptionNow } from "@/lib/billing";
 import { errorResponse } from "@/lib/errors";
 import { requireUser } from "@/lib/guards";
 import { destroySession } from "@/lib/session";
@@ -7,7 +7,7 @@ import { getStore } from "@/lib/store";
 export async function POST() {
   try {
     const user = await requireUser();
-    await setCancelAtPeriodEnd(user.id, true);
+    await cancelSubscriptionNow(user.id);
     await getStore().deleteUser(user.id);
     await destroySession();
     return Response.json({ ok: true });

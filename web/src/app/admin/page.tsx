@@ -43,7 +43,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
     { label: "שבועות היכרות", value: totals.trials.toLocaleString("he-IL"), note: "₪19.90" },
     { label: "תשלומי מנוי", value: totals.subscriptions.toLocaleString("he-IL"), note: "חודשי ורבעוני" },
     { label: "בונה קורות חיים", value: totals.builder.toLocaleString("he-IL"), note: "רכישות ₪49" },
-    { label: "הכנסות", value: ils(totals.revenueAgorot), note: demo.payments ? "הדגמה, לא כסף אמיתי" : "כולל מע״מ אם חל" },
+    { label: "הכנסות", value: ils(totals.revenueAgorot), note: demo.payments ? "הדגמה, לא כסף אמיתי" : "לפני עמלות סליקה" },
     { label: "עלות AI", value: ilsFromMicros(totals.aiCostMicros), note: "לפי השימוש בפועל" },
   ];
 
@@ -97,7 +97,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
       {/* ---------- funnel ---------- */}
       <section aria-labelledby="funnel" className="card mt-6 p-6 md:p-7">
         <h2 id="funnel" className="text-2xl">משפך ההמרה</h2>
-        <p className="mt-1 text-muted">כמה אנשים עברו כל שלב, ואיזה אחוז מהשלב הקודם. כאן רואים איפה אנשים נוטשים.</p>
+        <p className="mt-1 text-muted">כמה אנשים עברו כל שלב ואיזה אחוז מהשלב הקודם. כאן רואים איפה אנשים נוטשים.</p>
         <ol className="mt-5 space-y-3">
           {funnel.map((f) => (
             <li key={f.label} className="grid grid-cols-[9rem_1fr_6rem] items-center gap-3 md:grid-cols-[12rem_1fr_7rem]">

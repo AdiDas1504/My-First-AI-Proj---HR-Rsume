@@ -16,8 +16,8 @@ const STEPS = [
   },
   {
     n: "3",
-    title: "מקבלים גרסה מותאמת",
-    text: "תוך דקה: ציון התאמה, הפערים שכדאי לסגור וקורות חיים מוכנים לשליחה.",
+    title: "עונים ומקבלים גרסה מותאמת",
+    text: "ציון התאמה, כמה שאלות קצרות על מה שחשוב בתפקיד וקורות חיים מוכנים לשליחה.",
   },
 ];
 
@@ -35,8 +35,8 @@ const FEATURES = [
     alt: "",
   },
   {
-    title: "מוכן לשליחה, בעברית ובאנגלית",
-    text: "Word נקי שמערכות סינון קוראות, PDF מעוצב להדפסה, ומכתב מקדים קצר. עברית מימין לשמאל כמו שצריך.",
+    title: "מוכן לשליחה בעברית ובאנגלית",
+    text: "Word נקי שמערכות סינון קוראות, PDF מעוצב להדפסה ומכתב מקדים קצר. עברית מימין לשמאל כמו שצריך.",
     img: "/img/export.webp",
     alt: "",
   },
@@ -54,14 +54,14 @@ export default function Home() {
               לכל מי שמחפש עבודה בישראל
             </p>
             <h1 className="mt-4 text-[2.6rem] font-bold leading-[1.08] text-ink sm:text-6xl">
-              קורות החיים שלך,
+              קורות החיים שלך
               <br />
-              <span className="text-forest">מותאמים לכל משרה.</span>
+              <span className="text-forest">מותאמים לכל משרה</span>
               <br />
-              בלי להמציא אף מילה.
+              בלי להמציא אף מילה
             </h1>
             <p className="mt-6 max-w-xl text-lg text-muted md:text-xl">
-              מעלים קורות חיים ומודעת דרושים, ומקבלים תוך דקה ציון התאמה, את הפערים שחשוב לסגור וגרסה מותאמת מוכנה לשליחה ב-Word או PDF.
+              מעלים קורות חיים ומודעת דרושים ומקבלים תוך דקה ציון התאמה, את הפערים שחשוב לסגור וגרסה מותאמת מוכנה לשליחה ב-Word או PDF.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <Link href="/scan" className="btn btn-primary px-7 text-lg">
@@ -126,7 +126,7 @@ export default function Home() {
         <div className="container-page">
           <p className="eyebrow">איך זה עובד</p>
           <h2 id="how-title" className="mt-2 max-w-2xl text-4xl md:text-5xl">
-            שלושה צעדים, דקה אחת, קורות חיים שמדברים בשפה של המשרה
+            שלושה צעדים פשוטים לקורות חיים שמדברים בשפה של המשרה
           </h2>
           <ol className="mt-12 grid gap-5 md:grid-cols-3">
             {STEPS.map((s) => (
@@ -147,7 +147,7 @@ export default function Home() {
         <div className="container-page">
           <p className="eyebrow">מה מקבלים</p>
           <h2 id="features-title" className="mt-2 max-w-2xl text-4xl md:text-5xl">
-            לא עוד תבנית יפה. התאמה אמיתית למשרה הספציפית.
+            לא עוד תבנית יפה אלא התאמה אמיתית למשרה
           </h2>
           <div className="mt-14 space-y-16 md:space-y-24">
             {FEATURES.map((f, i) => (
@@ -174,10 +174,10 @@ export default function Home() {
             <div>
               <p className="eyebrow">חדש: בניית קורות חיים</p>
               <h2 id="builder-title" className="mt-2 text-3xl md:text-4xl">
-                אין לך קורות חיים טובים? נבנה אותם יחד.
+                אין לך קורות חיים טובים? נבנה אותם יחד
               </h2>
               <p className="mt-4 max-w-xl text-lg text-muted">
-                עונים על שאלות פשוטות, במילים שלכם, ואנחנו שואלים שאלות המשך שמוציאות את ההישגים האמיתיים. בסוף מקבלים קורות חיים מקצועיים ב-3 עיצובים, בעברית או באנגלית. מתאים גם לשיפור קורות חיים קיימים.
+                עונים על שאלות פשוטות, במילים שלכם ואנחנו שואלים שאלות המשך שמוציאות את ההישגים האמיתיים. בסוף מקבלים קורות חיים מקצועיים ב-3 עיצובים, בעברית או באנגלית. מתאים גם לשיפור קורות חיים קיימים.
               </p>
               <div className="mt-6 flex flex-wrap items-center gap-3">
                 <Link href="/builder" className="btn btn-primary text-lg">
@@ -207,7 +207,7 @@ export default function Home() {
             <div aria-hidden="true" className="absolute -left-20 -top-20 size-72 rounded-full bg-amber/20 blur-3xl" />
             <p className="relative font-semibold text-amber-soft">ההבטחה שלנו</p>
             <h2 id="promise-title" className="relative mt-3 max-w-3xl text-4xl text-white md:text-5xl">
-              מגייסים מזהים קורות חיים מנופחים. אנחנו לא נכניס אותך לראיון שלא תוכל לעמוד בו.
+              מגייסים מזהים קורות חיים מנופחים<br />ולכן לא נכניס אותך לראיון שלא תוכל לעמוד בו
             </h2>
             <ul className="relative mt-10 grid gap-6 md:grid-cols-3">
               <li>
@@ -232,10 +232,10 @@ export default function Home() {
         <div className="container-page">
           <p className="eyebrow">מחירים</p>
           <h2 id="pricing-title" className="mt-2 text-4xl md:text-5xl">
-            מתחילים בבדיקה חינם. ממשיכים רק אם זה עוזר.
+            מתחילים בבדיקה חינם וממשיכים רק אם זה עוזר
           </h2>
           <p className="mt-4 max-w-2xl text-lg text-muted">
-            מחיר ישראלי הוגן, בשקלים וכולל מע״מ. בלי התחייבות: מבטלים באזור האישי בלחיצה אחת.
+            מחיר סופי בשקלים, בלי תוספות ובלי התחייבות. מבטלים באזור האישי בלחיצה אחת.
           </p>
           <div className="mt-10">
             <PricingCards />

@@ -66,7 +66,7 @@ export default async function CheckoutPage({
               </div>
             </dl>
             <p className="mt-6 rounded-xl bg-paper-2 p-4 text-[0.95rem]">
-              <strong>חשוב לדעת:</strong> המנוי מתחדש אוטומטית בסוף כל תקופה. אפשר לבטל בכל רגע באזור האישי בלחיצה אחת, והמנוי יישאר פעיל עד סוף התקופה ששולמה. המחירים כוללים מע״מ.
+              <strong>חשוב לדעת:</strong> המנוי מתחדש אוטומטית בסוף כל תקופה. אפשר לבטל בכל רגע באזור האישי בלחיצה אחת. הביטול נכנס לתוקף מיד וסוגר את הגישה והחזר על התקופה הנוכחית אפשרי רק אם לא השתמשתם בשירותי האתר בתקופה הזו. המחיר הוא המחיר הסופי.
             </p>
             <CheckoutButton plan={planId} label={`לתשלום ${formatPrice(plan.priceAgorot)}`} />
             <p className="mt-4 text-center text-sm text-muted">
@@ -105,7 +105,7 @@ async function BuilderCheckout({ draftId }: { draftId: string }) {
             </div>
           </dl>
           <p className="mt-6 rounded-xl bg-paper-2 p-4 text-[0.95rem]">
-            כולל: יצירת קורות החיים, עריכה ללא הגבלה, 3 תבניות עיצוב, והורדה ל-Word ול-PDF בעברית או באנגלית. המחיר כולל מע״מ.
+            כולל: יצירת קורות החיים, עריכה ללא הגבלה, 3 תבניות עיצוב והורדה ל-Word ול-PDF בעברית או באנגלית. המחיר הוא המחיר הסופי.
           </p>
           <CheckoutButton product="builder" draftId={draft.id} label={`לתשלום ${formatPrice(BUILDER_PRODUCT.priceAgorot)}`} />
           <p className="mt-4 text-center text-sm text-muted">התשלום מתבצע בעמוד מאובטח של חברת הסליקה. פרטי הכרטיס לא נשמרים אצלנו.</p>

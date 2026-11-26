@@ -86,7 +86,7 @@ export function BuilderResult({
       {dirty && <p className="mt-3 text-sm text-amber-ink">יש שינויים שלא נשמרו. שמרו כדי להוריד את הגרסה המעודכנת.</p>}
 
       <p role="note" className="mt-5 rounded-2xl bg-amber-soft px-5 py-4 text-amber-ink">
-        <strong>זו טיוטה שנוצרה בעזרת AI.</strong> קראו כל שורה לפני השליחה, ודאו שכל פרט נכון ומדויק, ותקנו בעריכה מה שלא.
+        <strong>זו טיוטה שנוצרה בעזרת AI.</strong> קראו כל שורה לפני השליחה ודאו שכל פרט נכון ומדויק ותקנו בעריכה מה שלא.
       </p>
 
       {flags.length > 0 && (
@@ -141,7 +141,7 @@ export function BuilderResult({
 
           <div className="card bg-forest p-5 text-white">
             <p className="font-display text-xl font-bold">הצעד הבא: התאמה לכל משרה</p>
-            <p className="mt-1 text-white/85">מדביקים מודעת דרושים, ומקבלים גרסה של קורות החיים האלה בשפה של המשרה, עם ציון התאמה.</p>
+            <p className="mt-1 text-white/85">מדביקים מודעת דרושים ומקבלים גרסה של קורות החיים האלה בשפה של המשרה, עם ציון התאמה.</p>
             <Link href={tailorHref} className="btn mt-4 w-full bg-white text-forest hover:bg-amber-soft">
               {hasSubscription ? "להתאים למשרה" : "להתאים למשרה · שבוע ב-19.90 ₪"}
             </Link>

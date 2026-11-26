@@ -1,7 +1,5 @@
 import type { Metadata, Viewport } from "next";
 import "@fontsource-variable/heebo";
-import "@fontsource/frank-ruhl-libre/500.css";
-import "@fontsource/frank-ruhl-libre/700.css";
 import "./globals.css";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
@@ -18,7 +16,7 @@ export const metadata: Metadata = {
     template: "%s · JobFit",
   },
   description:
-    "מעלים קורות חיים ומודעת דרושים, ומקבלים ציון התאמה, את הפערים שחשוב לסגור וגרסה מותאמת מוכנה לשליחה ב-Word או PDF. בעברית ובאנגלית.",
+    "מעלים קורות חיים ומודעת דרושים ומקבלים ציון התאמה, את הפערים שחשוב לסגור וגרסה מותאמת מוכנה לשליחה ב-Word או PDF. בעברית ובאנגלית.",
   openGraph: {
     type: "website",
     locale: "he_IL",

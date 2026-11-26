@@ -18,7 +18,7 @@ export default async function BuilderPrintPage({ params }: { params: Promise<{ i
   return (
     <div className="bg-[#e9dfd5] py-8 print:bg-white print:py-0">
       <div className="no-print container-page mb-6 flex flex-wrap items-center justify-between gap-4">
-        <p className="max-w-2xl text-muted">להדפסה: בחלון ההדפסה בחרו נייר A4, סמנו ״גרפיקת רקע״ כדי לשמור את הצבעים, ובטלו כותרות עליונות ותחתונות. כדי לקבל קובץ מוכן בלי חלון הדפסה, לחצו ״הורדה ל-PDF״.</p>
+        <p className="max-w-2xl text-muted">להדפסה: בחלון ההדפסה בחרו נייר A4, סמנו ״גרפיקת רקע״ כדי לשמור את הצבעים ובטלו כותרות עליונות ותחתונות. כדי לקבל קובץ מוכן בלי חלון הדפסה, לחצו ״הורדה ל-PDF״.</p>
         <div className="flex flex-wrap gap-2">
           <PdfDownloadButton href={`/api/builder/${id}/pdf`} className="btn btn-primary" />
           <PrintButton />

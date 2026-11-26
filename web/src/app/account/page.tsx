@@ -39,11 +39,10 @@ export default async function AccountPage() {
                 <strong>{plan.name}</strong> · {ent.remaining} מתוך {ent.quota} התאמות נשארו
               </p>
               <p className="mt-2 text-muted">
-                {ent.cancelAtPeriodEnd
-                  ? `המנוי בוטל ויישאר פעיל עד ${dateFmt.format(new Date(ent.periodEnd!))}. לא יהיו חיובים נוספים.`
-                  : `החיוב הבא: ${formatPrice(renewPlan.priceAgorot)} ב-${dateFmt.format(new Date(ent.periodEnd!))} (${renewPlan.name}).`}
+                החיוב הבא: {formatPrice(renewPlan.priceAgorot)} ב-{dateFmt.format(new Date(ent.periodEnd!))} ({renewPlan.name}).
               </p>
-              <AccountActions mode={ent.cancelAtPeriodEnd ? "resume" : "cancel"} />
+              <p className="mt-2 text-sm text-muted">ביטול נכנס לתוקף מיד וסוגר את הגישה לשירותים בתשלום.</p>
+              <AccountActions mode="cancel" />
             </>
           ) : (
             <>

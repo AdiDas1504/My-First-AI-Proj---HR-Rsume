@@ -220,7 +220,7 @@ export function BuilderWizard({ draft, autoGenerate }: { draft: ClientDraft; aut
                 <li key={i}>{d}</li>
               ))}
             </ul>
-            <p className="mt-3 text-sm text-muted">מילאנו כבר את מה שמצאנו בקובץ. בדקו, השלימו, וענו על שאלות ההמשך בשלב הניסיון.</p>
+            <p className="mt-3 text-sm text-muted">מילאנו כבר את מה שמצאנו בקובץ. בדקו, השלימו וענו על שאלות ההמשך בשלב הניסיון.</p>
           </section>
         )}
 

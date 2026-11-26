@@ -38,7 +38,7 @@ export function RoleInsights({ insights }: { insights: RoleInsight[] }) {
     <section className="card p-6 md:p-7" aria-labelledby="insights-title">
       <h2 id="insights-title" className="text-2xl">מה בודקים בתפקיד כזה</h2>
       <p className="mt-1 text-muted">
-        מה שכתוב במודעה, ומה שמנהלי גיוס לתפקידים כאלה בודקים בדרך כלל
+        מה שכתוב במודעה ומה שמנהלי גיוס לתפקידים כאלה בודקים בדרך כלל
         {beyond > 0 ? ` (${beyond} נושאים שלא כתובים במודעה)` : ""}.
       </p>
       <ul className="mt-5 grid gap-3 md:grid-cols-2">
@@ -71,7 +71,7 @@ export function RequirementsTable({ analysis }: { analysis: Analysis }) {
           <span className="block font-display text-2xl font-bold">דרישות המשרה</span>
           {analysis.scoreVersion === 2 && (
             <span className="mt-1 block text-[0.95rem] font-normal text-muted">
-              הציון מחושב מהדרישות האלה: דרישות ליבה וחובה שוקלות יותר, התאמה חלקית שווה פחות מחצי, וחסר בדרישת ליבה מגביל את הציון. כל ״יש״
+              הציון מחושב מהדרישות האלה: דרישות ליבה וחובה שוקלות יותר, התאמה חלקית שווה פחות מחצי וחסר בדרישת ליבה מגביל את הציון. כל ״יש״
               נשען על שורה אמיתית מקורות החיים.
             </span>
           )}
