@@ -248,6 +248,6 @@ function demoDiagnose(resumeText: string): { answers: BuilderAnswers; diagnosis:
   ];
   return {
     answers,
-    diagnosis: ["מצב הדגמה: עם חיבור ל-AI תקבלו כאן אבחון אמיתי של מה שמחליש את קורות החיים, ושאלות ממוקדות לכל תפקיד."],
+    diagnosis: ["מצב הדגמה: עם חיבור ל-AI תקבלו כאן אבחון אמיתי של מה שמחליש את קורות החיים ושאלות ממוקדות לכל תפקיד."],
   };
 }
