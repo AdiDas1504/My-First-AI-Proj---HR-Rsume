@@ -48,7 +48,7 @@ export function DocWorkspace({ doc, canGenerate }: { doc: ClientDoc; canGenerate
       const data = await patch({ resume });
       setFlags(data.honestyFlags);
       setDirty(false);
-      setStatus("השינויים נשמרו, ובדיקת היושר רצה מחדש.");
+      setStatus("השינויים נשמרו ובדיקת היושר רצה מחדש.");
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -117,7 +117,7 @@ export function DocWorkspace({ doc, canGenerate }: { doc: ClientDoc; canGenerate
       {dirty && <p className="mt-3 text-sm text-amber-ink">יש שינויים שלא נשמרו. שמרו כדי להוריד את הגרסה המעודכנת.</p>}
 
       <p role="note" className="mt-5 rounded-2xl bg-amber-soft px-5 py-4 text-amber-ink">
-        <strong>זו טיוטה שנוצרה בעזרת AI.</strong> קראו כל שורה לפני השליחה, ודאו שכל פרט נכון ומדויק, ותקנו בעריכה מה שלא.
+        <strong>זו טיוטה שנוצרה בעזרת AI.</strong> קראו כל שורה לפני השליחה ודאו שכל פרט נכון ומדויק ותקנו בעריכה מה שלא.
       </p>
 
       {flags.length > 0 && (
@@ -285,7 +285,7 @@ export function DocWorkspace({ doc, canGenerate }: { doc: ClientDoc; canGenerate
           ) : (
             <div className="text-center">
               <p className="font-display text-2xl font-bold">מכתב מקדים למשרה הזו</p>
-              <p className="mx-auto mt-2 max-w-md text-muted">150 עד 220 מילים, ישיר וספציפי, ורק על בסיס מה שמופיע בקורות החיים שלך.</p>
+              <p className="mx-auto mt-2 max-w-md text-muted">150 עד 220 מילים, ישיר וספציפי ורק על בסיס מה שמופיע בקורות החיים שלך.</p>
               <button type="button" className="btn btn-primary mt-6" onClick={generateLetter} disabled={!canGenerate}>
                 ליצירת מכתב מקדים
               </button>

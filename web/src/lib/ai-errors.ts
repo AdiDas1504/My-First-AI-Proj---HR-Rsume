@@ -19,7 +19,7 @@ export function describeAiError(status: number | undefined, message: string): { 
       return { status: 503, text: "מודל ה-AI שהוגדר לא זמין. קוד: AI-404" };
     case 400:
     case 413:
-      return { status: 502, text: `בקשת ה-AI נדחתה. נסו שוב, ואם זה חוזר, כתבו לנו. קוד: AI-${status}` };
+      return { status: 502, text: `בקשת ה-AI נדחתה. נסו שוב ואם זה חוזר, כתבו לנו. קוד: AI-${status}` };
     case 429:
       return { status: 503, text: "הגענו למגבלת הקצב של שירות ה-AI. נסו שוב בעוד דקה. קוד: AI-429" };
     case 529:

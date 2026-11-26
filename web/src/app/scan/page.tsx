@@ -10,7 +10,7 @@ import { getStore } from "@/lib/store";
 
 export const metadata: Metadata = {
   title: "בדיקת התאמה חינם",
-  description: "בודקים בחינם כמה קורות החיים שלכם מתאימים למשרה, ומה שלושת הפערים החשובים לסגור.",
+  description: "בודקים בחינם כמה קורות החיים שלכם מתאימים למשרה ומה שלושת הפערים החשובים לסגור.",
 };
 
 export default async function ScanPage() {

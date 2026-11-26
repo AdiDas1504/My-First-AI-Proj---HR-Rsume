@@ -7,7 +7,7 @@ const FEATURES = [
   "הורדה ב-Word וב-PDF, בעברית ובאנגלית",
   "מכתב מקדים קצר לכל משרה",
   "בדיקת יושר: סימון כל פרט שלא מופיע במקור",
-  "גרסה שמורה לכל משרה, לעריכה בכל זמן",
+  "גרסה שמורה לכל משרה לעריכה ולהורדה",
 ];
 
 function Check() {
@@ -35,7 +35,7 @@ export function PricingCards({ ctaHref = (plan: PlanId) => `/checkout?plan=${pla
           <span className="text-muted">ל-7 ימים</span>
         </p>
         <p className="relative mt-2 text-muted">
-          אחר כך {formatPrice(monthly.priceAgorot)} לחודש. אפשר לבטל בלחיצה אחת לפני שהשבוע נגמר, ולא תחויבו שוב.
+          אחר כך {formatPrice(monthly.priceAgorot)} לחודש. אפשר לבטל בלחיצה אחת לפני שהשבוע נגמר ולא תחויבו שוב.
         </p>
         <ul className="relative mt-6 grid gap-2.5 sm:grid-cols-2">
           {FEATURES.map((f) => (

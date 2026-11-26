@@ -13,7 +13,7 @@ export function errorResponse(err: unknown) {
   }
   console.error(err);
   return Response.json(
-    { error: "משהו השתבש אצלנו. נסו שוב בעוד רגע, ואם זה חוזר, כתבו לנו." },
+    { error: "משהו השתבש אצלנו. נסו שוב בעוד רגע ואם זה חוזר, כתבו לנו." },
     { status: 500 },
   );
 }

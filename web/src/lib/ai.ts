@@ -179,10 +179,12 @@ Resume style (current Israeli market standard, two-column layout with a sidebar 
 - Mark military or national service with military: true; it is shown in its own section.
 - Skills: short items (1-4 words each). Put software, systems and tools as their own short items (e.g. "Excel", "SAP", "Power BI").
 - Dates as "Month YYYY" or "YYYY", consistently; an ongoing role has an empty end.
+- Hebrew punctuation: no comma before "ו", and no period at the end of a bullet that is a phrase rather than a sentence; be consistent across all bullets.
 `.trim();
 
 export const USER_VOICE = `
 Voice for every user-facing text: Hebrew, speaking directly to the candidate in second person ("יש לך", "הניסיון שלך"), never "המועמד". Warm, confident, specific and short, like a sharp career coach who is on their side. Lead with what already works, then frame gaps as concrete opportunities. Stay honest: never promise interviews or results, never imply a missing skill can be added unless it is true.
+Hebrew punctuation: no comma before "ו" (write "ניהלת צוות והובלת" not "ניהלת צוות, והובלת"); prefer short sentences.
 When the candidate works in the same field but is short on years or level (e.g. 3 years where 5 are asked), say the gap plainly, then name the job's required topics they already have hands-on experience with, and explain that showing them clearly can strengthen the application when a recruiter sees fewer years than asked.
 `.trim();
 

@@ -22,7 +22,7 @@ export const PLANS: Record<PlanId, Plan> = {
     periodDays: 7,
     tailorQuota: 10,
     renewsTo: "monthly",
-    blurb: "7 ימים מלאים, ואחר כך מנוי חודשי. אפשר לבטל בכל רגע.",
+    blurb: "7 ימים מלאים ואחר כך מנוי חודשי. אפשר לבטל בכל רגע.",
   },
   monthly: {
     id: "monthly",

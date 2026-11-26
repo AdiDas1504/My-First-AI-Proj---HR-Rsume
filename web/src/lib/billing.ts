@@ -161,10 +161,20 @@ export async function activateSubscription(userId: string, plan: PlanId, provide
   });
 }
 
-export async function setCancelAtPeriodEnd(userId: string, cancel: boolean) {
+/**
+ * Owner's policy (Nov 2026): cancelling ends access right away and stops all
+ * future charges. A refund for the current period is handled by the owner,
+ * only when the site was not used in that period.
+ */
+export async function cancelSubscriptionNow(userId: string) {
   const store = getStore();
   const sub = await store.getSubscription(userId);
   if (!sub || sub.status === "expired") return;
-  // PROVIDER: cancel / restore the standing order at the processor here.
-  await store.upsertSubscription({ ...sub, cancelAtPeriodEnd: cancel, status: cancel ? "canceled" : "active" });
+  // PROVIDER: cancel the standing order at the processor here.
+  await store.upsertSubscription({
+    ...sub,
+    status: "expired",
+    cancelAtPeriodEnd: true,
+    currentPeriodEnd: new Date().toISOString(),
+  });
 }

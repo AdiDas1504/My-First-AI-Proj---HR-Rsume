@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-export function AccountActions({ mode }: { mode: "cancel" | "resume" | "account" }) {
+export function AccountActions({ mode }: { mode: "cancel" | "account" }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
 
@@ -24,27 +24,17 @@ export function AccountActions({ mode }: { mode: "cancel" | "resume" | "account"
         className="btn btn-danger mt-5"
         disabled={busy}
         onClick={async () => {
-          if (!window.confirm("לבטל את המנוי? הוא יישאר פעיל עד סוף התקופה ששולמה, ולא יהיו חיובים נוספים.")) return;
-          await call("/api/billing/cancel", { cancel: true });
+          if (
+            !window.confirm(
+              "לבטל את המנוי?\n\nהביטול נכנס לתוקף מיד: הגישה לשירותים בתשלום נסגרת ולא יהיו חיובים נוספים. החזר על התקופה הנוכחית אפשרי רק אם לא השתמשתם בשירותי האתר בתקופה הזו.",
+            )
+          )
+            return;
+          await call("/api/billing/cancel");
           router.refresh();
         }}
       >
         ביטול המנוי
-      </button>
-    );
-  }
-  if (mode === "resume") {
-    return (
-      <button
-        type="button"
-        className="btn btn-secondary mt-5"
-        disabled={busy}
-        onClick={async () => {
-          await call("/api/billing/cancel", { cancel: false });
-          router.refresh();
-        }}
-      >
-        חידוש המנוי
       </button>
     );
   }

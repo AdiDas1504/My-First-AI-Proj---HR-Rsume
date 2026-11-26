@@ -8,7 +8,7 @@ export function SiteFooter() {
         <div className="max-w-sm">
           <Wordmark />
           <p className="mt-4 text-muted">
-            קורות חיים שמדברים בשפה של המשרה. אנחנו מנסחים מחדש את מה שכבר עשיתם, ולא ממציאים שום דבר.
+            קורות חיים שמדברים בשפה של המשרה. אנחנו מנסחים מחדש את מה שכבר עשיתם ולא ממציאים שום דבר.
           </p>
         </div>
         <nav aria-label="המוצר">

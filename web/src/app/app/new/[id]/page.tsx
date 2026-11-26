@@ -26,7 +26,7 @@ export default async function TailorReviewPage({ params }: { params: Promise<{ i
         </Link>
         <h1 className="mt-3 text-4xl md:text-5xl">מה מצאנו לפני שכותבים</h1>
         <p className="mt-3 text-lg text-muted">
-          בדקנו את קורות החיים מול המשרה ומול מה שנדרש בדרך כלל בתפקיד כזה. עכשיו כמה שאלות, ואז נכתוב.
+          בדקנו את קורות החיים מול המשרה ומול מה שנדרש בדרך כלל בתפקיד כזה. עכשיו כמה שאלות ואז נכתוב.
         </p>
         <TailorReview sessionId={session.id} analysis={session.analysis} questions={session.questions} remaining={ent.remaining} />
       </div>

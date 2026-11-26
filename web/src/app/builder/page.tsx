@@ -29,12 +29,12 @@ export default async function BuilderPage() {
         <div>
           <p className="eyebrow">בניית קורות חיים</p>
           <h1 className="mt-2 text-4xl md:text-5xl">
-            קורות חיים מקצועיים,
+            קורות חיים מקצועיים
             <br />
-            <span className="text-forest">מהניסיון האמיתי שלך.</span>
+            <span className="text-forest">מהניסיון האמיתי שלך</span>
           </h1>
           <p className="mt-5 max-w-xl text-lg text-muted">
-            יש לך קורות חיים שלא מביאים ראיונות? או שאין לך בכלל? עונים על כמה שאלות פשוטות, ואנחנו בונים קורות חיים שנראים ונשמעים מקצועיים, בלי להמציא אף מילה.
+            יש לך קורות חיים שלא מביאים ראיונות? או שאין לך בכלל? עונים על כמה שאלות פשוטות ואנחנו בונים קורות חיים שנראים ונשמעים מקצועיים, בלי להמציא אף מילה.
           </p>
           <ol className="mt-8 space-y-4">
             {STEPS.map((s) => (
