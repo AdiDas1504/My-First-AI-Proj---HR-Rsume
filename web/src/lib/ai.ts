@@ -7,6 +7,7 @@ import type { JobInput } from "./extract";
 import { computeScore, coverage, potentialScore, rankGaps } from "./scoring";
 import { newNumbers } from "./honesty";
 import { verifyRequirements } from "./evidence";
+import { logAiUsage } from "./ai-usage-log";
 import { describeAiError } from "./ai-errors";
 import { rejectsForcedToolUse, thinkingFor, toStrictSchema } from "./ai-request";
 import type { AddOnlyIfTrue, Analysis, RoleInsight, ScanResult, TailoredResume, TailorQuestion } from "./types";
@@ -129,6 +130,7 @@ export async function callTool<T>(opts: {
       const { status, text } = describeAiError(e.status, e.message ?? "");
       throw new UserError(text, status);
     }
+    logAiUsage(opts.model, opts.tool.name, message.usage);
     if (message.stop_reason === "max_tokens") {
       console.error("Claude output truncated", { model: opts.model, maxTokens: opts.maxTokens, usage: message.usage });
       throw new UserError("התשובה מה-AI נקטעה באמצע. נסו שוב. קוד: AI-LENGTH", 502);

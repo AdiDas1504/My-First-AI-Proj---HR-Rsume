@@ -1,3 +1,5 @@
+import { buildStats } from "../src/lib/admin-stats";
+import { aiCostMicros } from "../src/lib/ai-cost";
 import { describe, expect, it } from "vitest";
 import { normalizeIsraeliMobile, maskPhone } from "../src/lib/phone";
 import { computeScore, potentialScore, rankGaps } from "../src/lib/scoring";
@@ -391,5 +393,51 @@ describe("unsupported skills", () => {
     const { resume, dropped } = dropUnsupportedSkills(r, "גיוס עובדים לכל המחלקות, עבודה ב-Excel");
     expect(resume.skills).toEqual(["גיוס עובדים", "Excel"]);
     expect(dropped).toEqual(["שימור עובדים"]);
+  });
+});
+
+describe("owner dashboard numbers", () => {
+  const at = (d: string) => `${d}T10:00:00.000Z`;
+  const data = {
+    users: [{ id: "u1", createdAt: at("2026-11-20") }, { id: "u2", createdAt: at("2026-11-21") }],
+    payments: [
+      { userId: "u1", plan: "trial" as const, amountAgorot: 1990, status: "paid" as const, providerRef: "demo", createdAt: at("2026-11-20") },
+      { userId: "u1", plan: "monthly" as const, amountAgorot: 4990, status: "paid" as const, providerRef: "demo", createdAt: at("2026-11-21") },
+      { userId: "u2", plan: "builder" as const, amountAgorot: 4900, status: "failed" as const, providerRef: "x", createdAt: at("2026-11-21") },
+    ],
+    usage: [
+      { userId: "u1", kind: "scan" as const, createdAt: at("2026-11-20") },
+      { userId: "u2", kind: "scan" as const, createdAt: at("2026-11-21") },
+      { userId: "u2", kind: "scan" as const, createdAt: at("2026-11-21") },
+      { userId: "u1", kind: "tailor" as const, createdAt: at("2026-11-21") },
+    ],
+    events: [
+      { name: "home", visitor: "a", createdAt: at("2026-11-20") },
+      { name: "scan", visitor: "a", createdAt: at("2026-11-20") },
+      { name: "home", visitor: "b", createdAt: at("2026-11-21") },
+      { name: "home", visitor: "c", createdAt: at("2026-11-21") },
+      { name: "home", visitor: "d", createdAt: at("2026-11-21") },
+    ],
+    ai: [
+      { model: "claude-haiku-5-5", purpose: "report_fit_check", inputTokens: 4000, outputTokens: 1500, costMicros: 1150, createdAt: at("2026-11-20") },
+      { model: "claude-sonnet-5-5", purpose: "deliver_tailored_resume", inputTokens: 7000, outputTokens: 5000, costMicros: 64000, createdAt: at("2026-11-21") },
+    ],
+    drafts: [],
+  };
+  const s = buildStats(data, { days: 7, now: new Date(at("2026-11-21")) });
+
+  it("counts the funnel and only paid payments", () => {
+    expect(s.totals).toMatchObject({ visitors: 4, signups: 2, scans: 3, scanUsers: 2, trials: 1, subscriptions: 1, builder: 0, revenueAgorot: 6980 });
+    expect(s.funnel.map((f) => [f.value, f.rate])).toEqual([[4, null], [2, 50], [2, 100], [1, 50], [1, 100]]);
+  });
+  it("splits by day in Israel time and sums AI cost by purpose", () => {
+    const last = s.daily[s.daily.length - 1];
+    expect(last).toMatchObject({ day: "2026-11-21", visitors: 3, signups: 1, scans: 2, paid: 1, revenueAgorot: 4990, aiCostMicros: 64000 });
+    expect(s.aiByPurpose[0]).toMatchObject({ purpose: "deliver_tailored_resume", calls: 1, label: "כתיבת קורות חיים מותאמים" });
+  });
+  it("prices AI calls from token counts", () => {
+    expect(aiCostMicros("claude-haiku-5-5", 4000, 1500)).toBe(1150);
+    expect(aiCostMicros("claude-sonnet-5-5", 7000, 5000)).toBe(64000);
+    expect(aiCostMicros("claude-haiku-5-5", 200_000, 1000)).toBe((200_000 * 0.1 + 1000 * 0.5) * 5);
   });
 });

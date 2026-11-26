@@ -2,7 +2,7 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from "node:fs";
 import path from "node:path";
-import type { Store, FreeScanRecord, DocumentSummary, DraftSummary, PurgeCutoffs } from "./types";
+import type { Store, FreeScanRecord, DocumentSummary, DraftSummary, PurgeCutoffs, AiUsageRecord, AnalyticsEvent, AdminUserRow } from "./types";
 import type {
   BuilderDraft,
   OtpChallenge,
@@ -25,6 +25,8 @@ type Data = {
   drafts: BuilderDraft[];
   sessions: TailorSession[];
   payments: Payment[];
+  events: AnalyticsEvent[];
+  ai: AiUsageRecord[];
 };
 
 const empty = (): Data => ({
@@ -38,6 +40,8 @@ const empty = (): Data => ({
   drafts: [],
   sessions: [],
   payments: [],
+  events: [],
+  ai: [],
 });
 
 /**
@@ -220,6 +224,47 @@ export class MemoryStore implements Store {
     this.save();
   }
 
+  async addEvent(e: AnalyticsEvent) {
+    this.data.events.push(e);
+    this.save();
+  }
+  async addAiUsage(r: AiUsageRecord) {
+    this.data.ai.push(r);
+    this.save();
+  }
+  async adminData(since: string) {
+    const d = this.data;
+    return {
+      users: d.users.filter((u) => u.createdAt >= since).map((u) => ({ id: u.id, createdAt: u.createdAt })),
+      payments: d.payments.filter((p) => p.createdAt >= since),
+      usage: d.usage.filter((u) => u.createdAt >= since),
+      events: d.events.filter((e) => e.createdAt >= since),
+      ai: d.ai.filter((a) => a.createdAt >= since),
+      drafts: d.drafts.filter((x) => x.createdAt >= since).map((x) => ({ createdAt: x.createdAt })),
+    };
+  }
+  async adminUsers(opts: { limit: number; phoneContains?: string }): Promise<AdminUserRow[]> {
+    const d = this.data;
+    return d.users
+      .filter((u) => !opts.phoneContains || u.phone.includes(opts.phoneContains))
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+      .slice(0, opts.limit)
+      .map((u) => ({
+        id: u.id,
+        phone: u.phone,
+        createdAt: u.createdAt,
+        subscription: d.subscriptions.find((x) => x.userId === u.id) ?? null,
+        documents: d.documents.filter((x) => x.userId === u.id).length,
+        drafts: d.drafts.filter((x) => x.userId === u.id).length,
+      }));
+  }
+  async deleteFreeScans(phones: string[]) {
+    const before = this.data.freeScans.length;
+    this.data.freeScans = this.data.freeScans.filter((f) => !phones.includes(f.phone));
+    this.save();
+    return before - this.data.freeScans.length;
+  }
+
   async purgeExpired(c: PurgeCutoffs) {
     const d = this.data;
     const before = { documents: d.documents.length, drafts: d.drafts.length, sessions: d.sessions.length, otps: d.otps.length, rateEvents: d.rateEvents.length };
@@ -228,6 +273,8 @@ export class MemoryStore implements Store {
     d.sessions = d.sessions.filter((x) => x.createdAt >= c.sessions);
     d.otps = d.otps.filter((x) => x.expiresAt >= c.otps);
     d.rateEvents = d.rateEvents.filter((x) => x.createdAt >= c.rateEvents);
+    d.events = d.events.filter((x) => x.createdAt >= c.analytics);
+    d.ai = d.ai.filter((x) => x.createdAt >= c.analytics);
     this.save();
     return {
       documents: before.documents - d.documents.length,

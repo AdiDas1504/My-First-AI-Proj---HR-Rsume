@@ -35,6 +35,40 @@ export type PurgeCutoffs = {
   sessions: string;
   otps: string;
   rateEvents: string;
+  /** Anonymous page views and AI cost records. */
+  analytics: string;
+};
+
+/** One AI call: which model, what for, tokens and cost (millionths of a dollar). */
+export type AiUsageRecord = {
+  model: string;
+  purpose: string;
+  inputTokens: number;
+  outputTokens: number;
+  costMicros: number;
+  createdAt: string;
+};
+
+/** Anonymous page view: page name and a one-way key of the browser (no personal data). */
+export type AnalyticsEvent = { name: string; visitor: string | null; createdAt: string };
+
+/** Everything the owner dashboard needs for a period. */
+export type AdminData = {
+  users: { id: string; createdAt: string }[];
+  payments: Pick<Payment, "userId" | "plan" | "amountAgorot" | "status" | "providerRef" | "createdAt">[];
+  usage: { userId: string; kind: UsageKind; createdAt: string }[];
+  events: AnalyticsEvent[];
+  ai: AiUsageRecord[];
+  drafts: { createdAt: string }[];
+};
+
+export type AdminUserRow = {
+  id: string;
+  phone: string;
+  createdAt: string;
+  subscription: Subscription | null;
+  documents: number;
+  drafts: number;
 };
 
 /** Persistence contract. Implemented by a local JSON store (demo) and Supabase. */
@@ -81,6 +115,15 @@ export interface Store {
   createSession(session: TailorSession): Promise<void>;
   getSession(userId: string, id: string): Promise<TailorSession | null>;
   updateSession(session: TailorSession): Promise<void>;
+
+  addEvent(event: AnalyticsEvent): Promise<void>;
+  addAiUsage(record: AiUsageRecord): Promise<void>;
+  /** Owner dashboard: raw rows since a date (small volumes; aggregated in code). */
+  adminData(sinceIso: string): Promise<AdminData>;
+  /** Owner dashboard: latest users, or those whose phone contains the search. */
+  adminUsers(opts: { limit: number; phoneContains?: string }): Promise<AdminUserRow[]>;
+  /** Owner tool: forget free checks for these phone keys, so the person can check again. */
+  deleteFreeScans(phones: string[]): Promise<number>;
 
   /** Delete data past its retention period (privacy policy). Returns counts. */
   purgeExpired(cutoffs: PurgeCutoffs): Promise<Record<string, number>>;
